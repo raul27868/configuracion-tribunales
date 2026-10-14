@@ -53,6 +53,7 @@ select {
   display: flex;
   width: min(1160px, calc(100% - 48px));
   gap: 4px;
+  overflow-x: auto;
   margin-inline: auto;
 }
 
@@ -84,6 +85,18 @@ select {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
+}
+
+.app-version {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  background: #f8fafc;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
 }
 
 .brand {
@@ -430,6 +443,51 @@ h1 {
   display: none;
 }
 
+.data-view-panel[hidden] {
+  display: none;
+}
+
+.data-view-table {
+  max-height: min(65vh, 680px);
+}
+
+.data-view-table .data-table {
+  min-width: max-content;
+}
+
+.availability-tables {
+  display: grid;
+  gap: 18px;
+}
+
+.availability-table-section {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 5px 22px rgb(15 23 42 / 4%);
+}
+
+.availability-table-section h2 {
+  margin-bottom: 12px;
+  font-size: 16px;
+}
+
+.availability-table-section .table-scroll {
+  max-height: 380px;
+}
+
+.availability-table-section .data-table {
+  min-width: max-content;
+}
+
+.view-record-count {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .source-card {
   min-width: 0;
   padding: 21px;
@@ -585,6 +643,11 @@ h1 {
     min-height: 68px;
   }
 
+  .app-tabs,
+  .header-content {
+    width: min(100% - 32px, 1160px);
+  }
+
   .brand-caption {
     max-width: 200px;
     font-size: 10px;
@@ -597,6 +660,12 @@ h1 {
   .phase-badge {
     padding: 7px 9px;
     font-size: 10px;
+  }
+
+  .app-tab {
+    padding-inline: 11px;
+    font-size: 12px;
+    white-space: nowrap;
   }
 
   .page-content {
@@ -661,6 +730,7 @@ h1 {
             <span class="brand-caption">Defensas de Trabajo Fin de Máster</span>
           </span>
         </a>
+        <span class="app-version" title="Versión de la aplicación">v1.2.0</span>
       </div>
       <nav class="app-tabs" role="tablist" aria-label="Secciones de la aplicación">
         <button
@@ -672,6 +742,10 @@ h1 {
           aria-controls="panel-configuration"
           tabindex="0"
         >Configuración</button>
+        <button class="app-tab" id="tab-tutors" type="button" role="tab" aria-selected="false" aria-controls="panel-tutors" tabindex="-1">Tutores</button>
+        <button class="app-tab" id="tab-students" type="button" role="tab" aria-selected="false" aria-controls="panel-students" tabindex="-1">Alumnos</button>
+        <button class="app-tab" id="tab-tfms" type="button" role="tab" aria-selected="false" aria-controls="panel-tfms" tabindex="-1">TFMs</button>
+        <button class="app-tab" id="tab-availability" type="button" role="tab" aria-selected="false" aria-controls="panel-availability" tabindex="-1">Disponibilidad</button>
       </nav>
     </header>
 
@@ -686,8 +760,8 @@ h1 {
           <p class="eyebrow">Fase 1 · Fuentes de datos</p>
           <h1 id="page-title">Conecta tus hojas de cálculo</h1>
           <p class="intro-copy">
-            Configura las fuentes de alumnos, profesorado y otros datos para consultar sus hojas.
-            En esta fase no se realizan asignaciones de tribunales.
+            Configura las fuentes de alumnos, profesorado y otros datos. Consulta las vistas preparadas
+            desde las pestañas superiores; todavía no se realizan asignaciones de tribunales.
           </p>
         </section>
 
@@ -935,6 +1009,42 @@ h1 {
           Los tokens y los datos de las hojas no se incluyen en la configuración.
         </p>
       </section>
+      <section class="data-view-panel" id="panel-tutors" role="tabpanel" aria-labelledby="tab-tutors" tabindex="0" hidden>
+        <div class="intro">
+          <p class="eyebrow">Datos de profesorado</p>
+          <h1>Tutores</h1>
+          <p class="intro-copy">Registros de la pestaña «Tutores» del documento de Profesorado.</p>
+        </div>
+        <p class="source-status" id="tutors-view-status" role="status" aria-live="polite">Autoriza Google y configura la URL de Profesorado para cargar estos datos.</p>
+        <div class="table-scroll data-view-table" id="tutors-view-table" tabindex="0" aria-label="Tabla de tutores"></div>
+      </section>
+      <section class="data-view-panel" id="panel-students" role="tabpanel" aria-labelledby="tab-students" tabindex="0" hidden>
+        <div class="intro">
+          <p class="eyebrow">Datos de alumnos y entregas</p>
+          <h1>Alumnos</h1>
+          <p class="intro-copy">Registros de la pestaña «Alumnos» del documento de Alumnos y entregas.</p>
+        </div>
+        <p class="source-status" id="students-view-status" role="status" aria-live="polite">Autoriza Google y configura la URL de Alumnos y entregas para cargar estos datos.</p>
+        <div class="table-scroll data-view-table" id="students-view-table" tabindex="0" aria-label="Tabla de alumnos"></div>
+      </section>
+      <section class="data-view-panel" id="panel-tfms" role="tabpanel" aria-labelledby="tab-tfms" tabindex="0" hidden>
+        <div class="intro">
+          <p class="eyebrow">Asignación de TFM</p>
+          <h1>TFMs</h1>
+          <p class="intro-copy">Registros de la pestaña «asignacion alumno-profesor» del documento de Alumnos y entregas.</p>
+        </div>
+        <p class="source-status" id="tfms-view-status" role="status" aria-live="polite">Autoriza Google y configura la URL de Alumnos y entregas para cargar estos datos.</p>
+        <div class="table-scroll data-view-table" id="tfms-view-table" tabindex="0" aria-label="Tabla de asignaciones de TFM"></div>
+      </section>
+      <section class="data-view-panel" id="panel-availability" role="tabpanel" aria-labelledby="tab-availability" tabindex="0" hidden>
+        <div class="intro">
+          <p class="eyebrow">Otros Datos</p>
+          <h1>Disponibilidad</h1>
+          <p class="intro-copy">Se muestran, en tablas independientes, las pestañas de disponibilidad que existen en el documento.</p>
+        </div>
+        <p class="source-status" id="availability-view-status" role="status" aria-live="polite">Autoriza Google y configura la URL de Otros Datos para cargar estos datos.</p>
+        <div class="availability-tables" id="availability-view-tables"></div>
+      </section>
     </main>
     <script>
 const SHEETS_API_BASE = "https://sheets.googleapis.com/v4/spreadsheets";
@@ -1091,6 +1201,7 @@ const LEGACY_STORAGE_KEY = "configuracion-tribunales.sheet-urls.v1";
 const DEFAULT_CONFIGURATION_FILENAME = "MBID_TFMs_Edicion.json";
 const client = new SheetsClient();
 const sources = new Map();
+const viewRequests = new Map();
 let tokenClient;
 let authorizedClientId;
 let pendingClientId;
@@ -1103,8 +1214,35 @@ const elements = {
   configurationStatus: document.querySelector("#configuration-status"),
   loadConfigurationButton: document.querySelector("#load-configuration-button"),
   downloadConfigurationButton: document.querySelector("#download-configuration-button"),
+  appTabs: [...document.querySelectorAll(".app-tabs .app-tab")],
   sourceTabs: [...document.querySelectorAll(".source-tab")],
 };
+
+const DERIVED_VIEWS = {
+  tutors: {
+    source: "staff",
+    sheet: "Tutores",
+    statusId: "tutors-view-status",
+    tableId: "tutors-view-table",
+    columns: ["correo", "apellidos", "nombre", "correo2", "Doctorado", "DNI", "FIGURA LABORAL", "ROL", "Activo"],
+  },
+  students: {
+    source: "students",
+    sheet: "Alumnos",
+    statusId: "students-view-status",
+    tableId: "students-view-table",
+    columns: ["CORREO", "GRUPO", "NOMBRE COMPLETO", "DOCUMENTO", "_CORREO"],
+  },
+  tfms: {
+    source: "students",
+    sheet: "asignacion alumno-profesor",
+    statusId: "tfms-view-status",
+    tableId: "tfms-view-table",
+    columns: ["e-mail alumno", "GRUPO", "alumno", "e-mail-profesor", "profesor", "e-mail profesor2", "profesor2", "Doctor", "tema", "EMAIL_SENT", "tribunal", "nota_1", "nota_2", "nota_3", "Observaciones"],
+  },
+};
+
+const AVAILABILITY_SHEETS = ["Disponibilidad_1", "Disponibilidad_2", "Disponibilidad_3"];
 
 for (const name of ["students", "staff", "otherData"]) {
   const form = document.querySelector(`#${name}-form`);
@@ -1163,6 +1301,23 @@ elements.loadConfigurationButton.addEventListener("click", () => elements.config
 elements.configurationFile.addEventListener("change", handleConfigurationFile);
 elements.downloadConfigurationButton.addEventListener("click", downloadConfiguration);
 
+for (const [index, tab] of elements.appTabs.entries()) {
+  tab.addEventListener("click", () => activateAppTab(tab));
+  tab.addEventListener("keydown", (event) => {
+    let nextIndex;
+    if (event.key === "ArrowRight") nextIndex = (index + 1) % elements.appTabs.length;
+    else if (event.key === "ArrowLeft") nextIndex = (index - 1 + elements.appTabs.length) % elements.appTabs.length;
+    else if (event.key === "Home") nextIndex = 0;
+    else if (event.key === "End") nextIndex = elements.appTabs.length - 1;
+    else return;
+
+    event.preventDefault();
+    const nextTab = elements.appTabs[nextIndex];
+    activateAppTab(nextTab);
+    nextTab.focus();
+  });
+}
+
 for (const [index, tab] of elements.sourceTabs.entries()) {
   tab.addEventListener("click", () => activateSourceTab(tab));
   tab.addEventListener("keydown", (event) => {
@@ -1187,6 +1342,224 @@ function activateSourceTab(activeTab) {
     tab.tabIndex = isActive ? 0 : -1;
     document.getElementById(tab.getAttribute("aria-controls")).hidden = !isActive;
   }
+}
+
+function activateAppTab(activeTab) {
+  for (const tab of elements.appTabs) {
+    const isActive = tab === activeTab;
+    tab.setAttribute("aria-selected", String(isActive));
+    tab.tabIndex = isActive ? 0 : -1;
+    document.getElementById(tab.getAttribute("aria-controls")).hidden = !isActive;
+  }
+
+  const viewName = activeTab.id.replace(/^tab-/, "");
+  if (viewName === "configuration") return;
+  if (viewName === "availability") {
+    loadAvailabilityView();
+  } else if (DERIVED_VIEWS[viewName]) {
+    loadDerivedView(viewName);
+  }
+}
+
+async function loadDerivedView(viewName) {
+  const view = DERIVED_VIEWS[viewName];
+  const source = sources.get(view.source);
+  const status = document.getElementById(view.statusId);
+  const table = document.getElementById(view.tableId);
+  const requestNumber = (viewRequests.get(viewName) ?? 0) + 1;
+  viewRequests.set(viewName, requestNumber);
+  table.replaceChildren(makePlaceholder("Cargando datos…"));
+
+  if (!client.hasAccessToken) {
+    setViewStatus(status, "Autoriza primero el acceso de solo lectura con Google.", "error");
+    return;
+  }
+
+  let spreadsheetId;
+  try {
+    spreadsheetId = client.parseSpreadsheetId(source.input.value.trim());
+  } catch (error) {
+    setViewStatus(status, `Configura la fuente «${sourceLabel(view.source)}» en Configuración: ${error.message}`, "error");
+    return;
+  }
+
+  setViewStatus(status, `Cargando la pestaña «${view.sheet}»…`);
+  try {
+    const result = await client.readSheet(spreadsheetId, view.sheet);
+    if (viewRequests.get(viewName) !== requestNumber) return;
+    const projected = projectColumns(result, view.columns);
+    renderDataTable(table, projected.headers, projected.records);
+    setViewStatus(status, `${view.sheet}: ${formatRecordCount(projected.records.length)}.`, "success");
+  } catch (error) {
+    if (viewRequests.get(viewName) !== requestNumber) return;
+    table.replaceChildren(makePlaceholder("No se han podido cargar los datos."));
+    setViewStatus(status, error.message, "error");
+    if (!client.hasAccessToken) {
+      setConnectionStatus("La autorización ha caducado. Vuelve a autorizar el acceso.", "error");
+    }
+  }
+}
+
+async function loadAvailabilityView() {
+  const viewName = "availability";
+  const source = sources.get("otherData");
+  const status = document.getElementById("availability-view-status");
+  const tables = document.getElementById("availability-view-tables");
+  const requestNumber = (viewRequests.get(viewName) ?? 0) + 1;
+  viewRequests.set(viewName, requestNumber);
+  tables.replaceChildren(makePlaceholder("Cargando pestañas de disponibilidad…"));
+
+  if (!client.hasAccessToken) {
+    setViewStatus(status, "Autoriza primero el acceso de solo lectura con Google.", "error");
+    return;
+  }
+
+  let spreadsheetId;
+  try {
+    spreadsheetId = client.parseSpreadsheetId(source.input.value.trim());
+  } catch (error) {
+    setViewStatus(status, `Configura la fuente «Otros Datos» en Configuración: ${error.message}`, "error");
+    return;
+  }
+
+  setViewStatus(status, "Buscando pestañas de disponibilidad…");
+  try {
+    const sheets = await client.listSheets(spreadsheetId);
+    if (viewRequests.get(viewName) !== requestNumber) return;
+    const availableSheets = AVAILABILITY_SHEETS.filter((title) =>
+      sheets.some((sheet) => sheet.title === title)
+    );
+    if (availableSheets.length === 0) {
+      tables.replaceChildren(makePlaceholder("No se encontraron las pestañas Disponibilidad_1, Disponibilidad_2 o Disponibilidad_3."));
+      setViewStatus(status, "No hay pestañas de disponibilidad disponibles.", "error");
+      return;
+    }
+
+    tables.replaceChildren();
+    const results = await Promise.all(availableSheets.map(async (title) => {
+      try {
+        return { title, result: await client.readSheet(spreadsheetId, title) };
+      } catch (error) {
+        return { title, error };
+      }
+    }));
+    if (viewRequests.get(viewName) !== requestNumber) return;
+
+    let failedSheets = 0;
+    for (const entry of results) {
+      if (entry.error) {
+        failedSheets += 1;
+        renderAvailabilitySection(tables, entry.title, null, entry.error.message);
+      } else {
+        renderAvailabilitySection(tables, entry.title, entry.result);
+      }
+    }
+    if (failedSheets && !client.hasAccessToken) {
+      setConnectionStatus("La autorización ha caducado. Vuelve a autorizar el acceso.", "error");
+    }
+    setViewStatus(
+      status,
+      failedSheets
+        ? `${availableSheets.length - failedSheets} pestañas cargadas; ${failedSheets} no se pudieron leer.`
+        : `${availableSheets.length} ${availableSheets.length === 1 ? "pestaña de disponibilidad cargada" : "pestañas de disponibilidad cargadas"}.`,
+      failedSheets ? "error" : "success"
+    );
+  } catch (error) {
+    if (viewRequests.get(viewName) !== requestNumber) return;
+    tables.replaceChildren(makePlaceholder("No se han podido cargar las pestañas."));
+    setViewStatus(status, error.message, "error");
+    if (!client.hasAccessToken) {
+      setConnectionStatus("La autorización ha caducado. Vuelve a autorizar el acceso.", "error");
+    }
+  }
+}
+
+function projectColumns(result, requiredColumns) {
+  const headerIndexes = new Map();
+  result.headers.forEach((header, index) => {
+    const key = normalizeColumnName(header);
+    if (!headerIndexes.has(key)) headerIndexes.set(key, index);
+  });
+  const missingColumns = requiredColumns.filter((column) => !headerIndexes.has(normalizeColumnName(column)));
+  if (missingColumns.length) {
+    throw new Error(`Faltan columnas requeridas en la hoja: ${missingColumns.join(", ")}.`);
+  }
+
+  const indexes = requiredColumns.map((column) => headerIndexes.get(normalizeColumnName(column)));
+  return {
+    headers: requiredColumns,
+    records: result.records.map((record) => indexes.map((index) => record[index] ?? "")),
+  };
+}
+
+function normalizeColumnName(value) {
+  return String(value).trim().replace(/\s+/g, " ").toLocaleLowerCase("es");
+}
+
+function renderDataTable(container, headers, records) {
+  if (headers.length === 0) {
+    container.replaceChildren(makePlaceholder("No se encontraron encabezados ni registros en esta pestaña."));
+    return;
+  }
+
+  const table = document.createElement("table");
+  table.className = "data-table";
+  const head = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+  for (const header of headers) {
+    const cell = document.createElement("th");
+    cell.scope = "col";
+    cell.textContent = header;
+    headerRow.append(cell);
+  }
+  head.append(headerRow);
+  const body = document.createElement("tbody");
+  for (const record of records) {
+    const row = document.createElement("tr");
+    for (const value of record) {
+      const cell = document.createElement("td");
+      cell.textContent = value;
+      row.append(cell);
+    }
+    body.append(row);
+  }
+  table.append(head, body);
+  container.replaceChildren(table);
+}
+
+function renderAvailabilitySection(container, title, result, errorMessage = "") {
+  const section = document.createElement("section");
+  section.className = "availability-table-section";
+  const heading = document.createElement("h2");
+  heading.textContent = title;
+  section.append(heading);
+
+  if (errorMessage) {
+    const error = makePlaceholder(errorMessage);
+    error.classList.add("status-error");
+    section.append(error);
+  } else {
+    const count = document.createElement("p");
+    count.className = "view-record-count";
+    count.textContent = formatRecordCount(result.records.length);
+    section.append(count);
+    const table = document.createElement("div");
+    table.className = "table-scroll";
+    table.setAttribute("aria-label", `Tabla ${title}`);
+    renderDataTable(table, result.headers, result.records);
+    section.append(table);
+  }
+  container.append(section);
+}
+
+function sourceLabel(name) {
+  return { students: "Alumnos y entregas", staff: "Profesorado", otherData: "Otros Datos" }[name];
+}
+
+function setViewStatus(element, message, kind = "") {
+  element.textContent = message;
+  element.classList.toggle("status-error", kind === "error");
+  element.classList.toggle("status-success", kind === "success");
 }
 
 function createEmptyConfiguration() {
