@@ -32,11 +32,21 @@ Abre <http://localhost:8000> en el navegador. También se puede usar cualquier o
 2. Pega la URL de cada documento de Sheets en su fuente y pulsa **Cargar pestañas**.
 3. La primera pestaña se carga automáticamente. Usa el selector para consultar otra; cada fuente conserva su propia pestaña seleccionada mientras la página está abierta.
 
+## Guardar y cargar la configuración
+
+En la pestaña **Configuración**, usa **Descargar Configuración** para guardar los ajustes como `MBID_TFMs_Edicion.json`, o **Cargar Configuración** para recuperar un fichero JSON guardado previamente. La configuración incluye:
+
+- El OAuth Client ID.
+- La URL de cada documento de Sheets.
+- El identificador y el nombre de la pestaña seleccionada para cada fuente.
+
+El JSON tiene la versión `1` para facilitar futuras ampliaciones. Al cargarlo, la página valida la estructura antes de aplicar los cambios. Después de autorizar Google, pulsa **Cargar pestañas** para cada fuente: se restaurará la selección si la pestaña sigue existiendo. Si ya no existe, la página lo indicará y permitirá elegir otra. La configuración también se guarda automáticamente en el almacenamiento local del navegador; las URL guardadas por versiones anteriores se migran al nuevo formato.
+
 ## Datos y privacidad
 
-- Las URL de los documentos se guardan en `localStorage` de este navegador.
-- El Client ID se mantiene en la página y no se guarda localmente.
+- El Client ID y la configuración de las fuentes se guardan en `localStorage` de este navegador y en el fichero JSON descargado. El Client ID identifica la aplicación OAuth; no incluyas secretos de cliente.
 - El token OAuth se mantiene solo en memoria durante la sesión de la página; no se escribe en `localStorage`, `sessionStorage` ni cookies. Al cerrar o recargar la página será necesario autorizar de nuevo.
+- Ni los tokens ni los datos leídos de las hojas se guardan en el JSON de configuración.
 - Las hojas se consultan directamente desde el navegador mediante Google Sheets API. El contenido no se envía a un servidor de esta aplicación.
 
 ## Estructura
