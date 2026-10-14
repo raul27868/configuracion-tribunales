@@ -1,0 +1,1 @@
+Ctrl+Shift+R Para refrescar la pagina tras commit + push:  https://raul27868.github.io/configuracion-tribunales/ 

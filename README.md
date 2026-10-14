@@ -1,6 +1,6 @@
 # Configuración de tribunales de defensa de TFM
 
-Aplicación web estática de **un solo fichero**, `index.html`, en HTML, CSS y JavaScript nativo. Permite consultar dos fuentes de Google Sheets: alumnos y entregas de TFM, y profesorado (directores y miembros de tribunales). Esta primera fase permite seleccionar pestañas, detectar encabezados y ver los registros; todavía no asigna tribunales.
+Aplicación web estática de **un solo fichero**, `index.html`, en HTML, CSS y JavaScript nativo. Permite consultar tres fuentes de Google Sheets: alumnos y entregas de TFM, profesorado (directores y miembros de tribunales) y Otros Datos. Cada fuente se muestra en una subpestaña independiente de Configuración para mantener las tablas legibles; todavía no asigna tribunales.
 
 ## Requisitos
 
@@ -29,8 +29,8 @@ python3 -m http.server 8000
 Abre <http://localhost:8000> en el navegador. También se puede usar cualquier otro servidor estático, siempre que su origen esté registrado en el cliente OAuth. No abras el archivo directamente con `file://`, ya que Google Identity Services necesita un origen web autorizado.
 
 1. Introduce el OAuth Client ID y pulsa **Autorizar lectura**; completa el consentimiento de Google.
-2. Pega la URL de cada documento de Sheets en su fuente y pulsa **Cargar pestañas**.
-3. La primera pestaña se carga automáticamente. Usa el selector para consultar otra; cada fuente conserva su propia pestaña seleccionada mientras la página está abierta.
+2. En Configuración, abre la subpestaña de cada fuente, pega la URL del documento correspondiente y pulsa **Cargar pestañas**.
+3. Se carga la pestaña guardada o, si no hay una selección previa, la primera. Usa el selector para consultar otra; cada fuente conserva su propia selección al cambiar entre subpestañas.
 
 ## Guardar y cargar la configuración
 
@@ -40,7 +40,7 @@ En la pestaña **Configuración**, usa **Descargar Configuración** para guardar
 - La URL de cada documento de Sheets.
 - El identificador y el nombre de la pestaña seleccionada para cada fuente.
 
-El JSON tiene la versión `1` para facilitar futuras ampliaciones. Al cargarlo, la página valida la estructura antes de aplicar los cambios. Después de autorizar Google, pulsa **Cargar pestañas** para cada fuente: se restaurará la selección si la pestaña sigue existiendo. Si ya no existe, la página lo indicará y permitirá elegir otra. La configuración también se guarda automáticamente en el almacenamiento local del navegador; las URL guardadas por versiones anteriores se migran al nuevo formato.
+El JSON tiene la versión `2` e incluye alumnos y entregas, profesorado y Otros Datos. Las configuraciones de versión `1` se aceptan y migran automáticamente; la nueva fuente queda vacía. Al cargar un fichero, la página valida su estructura antes de aplicar los cambios. Después de autorizar Google, abre la subpestaña de cada fuente y pulsa **Cargar pestañas**: se restaurará la selección si la pestaña sigue existiendo. Si ya no existe, la página lo indicará y permitirá elegir otra. La configuración también se guarda automáticamente en el almacenamiento local del navegador.
 
 ## Datos y privacidad
 
