@@ -1,0 +1,1107 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f7fb">
+    <title>Configuración de tribunales · TFM</title>
+    <style>
+:root {
+  color-scheme: light;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #1e293b;
+  background: #f5f7fb;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --ink: #1e293b;
+  --muted: #64748b;
+  --line: #e2e8f0;
+  --blue: #3157d5;
+  --blue-dark: #2546b7;
+  --surface: #ffffff;
+  --radius: 16px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.app-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.header-content,
+.page-content {
+  width: min(1160px, calc(100% - 48px));
+  margin-inline: auto;
+}
+
+.header-content {
+  min-height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.brand-mark,
+.source-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 12px;
+  font-weight: 750;
+}
+
+.brand-mark {
+  width: 40px;
+  height: 40px;
+  color: #fff;
+  background: var(--blue);
+  font-size: 19px;
+}
+
+.brand strong,
+.brand-caption {
+  display: block;
+}
+
+.brand strong {
+  font-size: 14px;
+  letter-spacing: -0.01em;
+}
+
+.brand-caption {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.phase-badge {
+  padding: 8px 12px;
+  border: 1px solid #dbe4ff;
+  border-radius: 999px;
+  color: #3150b2;
+  background: #f2f5ff;
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.page-content {
+  padding-block: 46px 36px;
+}
+
+.intro {
+  margin-bottom: 28px;
+}
+
+.eyebrow {
+  margin: 0 0 7px;
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 9px;
+  font-size: clamp(27px, 4vw, 36px);
+  letter-spacing: -0.045em;
+  line-height: 1.15;
+}
+
+.intro-copy {
+  max-width: 640px;
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.connection-card,
+.source-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 5px 22px rgb(15 23 42 / 4%);
+}
+
+.connection-card {
+  margin-bottom: 22px;
+  padding: 22px 24px 18px;
+}
+
+.section-heading,
+.connection-controls,
+.source-heading,
+.source-actions,
+.table-meta {
+  display: flex;
+  align-items: center;
+}
+
+.section-heading {
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.section-heading h2,
+.source-heading h2 {
+  margin-bottom: 5px;
+  font-size: 17px;
+  letter-spacing: -0.02em;
+}
+
+.section-heading p,
+.source-description {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.lock-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 11px;
+  color: #16805a;
+  background: #eaf8f1;
+  font-size: 19px;
+}
+
+.connection-controls {
+  align-items: end;
+  gap: 14px;
+  margin-top: 19px;
+}
+
+.field {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+}
+
+.field > span {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.client-field {
+  flex: 1;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid #d8e0eb;
+  border-radius: 9px;
+  outline: none;
+  color: var(--ink);
+  background: #fff;
+  font-size: 13px;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.field input::placeholder {
+  color: #a0aec0;
+}
+
+.field input:focus,
+.field select:focus {
+  border-color: #8098ed;
+  box-shadow: 0 0 0 3px rgb(49 87 213 / 12%);
+}
+
+.field select:disabled {
+  color: #94a3b8;
+  background: #f8fafc;
+}
+
+.field small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.button {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 650;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.button:focus-visible {
+  outline: 3px solid rgb(49 87 213 / 28%);
+  outline-offset: 2px;
+}
+
+.button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.button-primary {
+  color: #fff;
+  background: var(--blue);
+}
+
+.button-primary:hover:not(:disabled) {
+  background: var(--blue-dark);
+}
+
+.button-secondary {
+  border-color: #d8e0eb;
+  color: #334155;
+  background: #fff;
+}
+
+.button-secondary:hover:not(:disabled) {
+  border-color: #aebcda;
+  background: #f8faff;
+}
+
+.connection-status,
+.source-status {
+  min-height: 17px;
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.status-error {
+  color: #b42318;
+}
+
+.status-success {
+  color: #16805a;
+}
+
+.sources-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 20px;
+}
+
+.source-card {
+  min-width: 0;
+  padding: 21px;
+}
+
+.source-heading {
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.source-icon {
+  width: 42px;
+  height: 42px;
+  color: #3157d5;
+  background: #edf1ff;
+  font-size: 13px;
+}
+
+.staff-icon {
+  color: #147355;
+  background: #eaf8f1;
+}
+
+.source-heading .eyebrow {
+  margin-bottom: 4px;
+}
+
+.source-heading h2 {
+  margin-bottom: 0;
+}
+
+.source-description {
+  margin: -7px 0 15px 54px;
+}
+
+.source-form {
+  display: grid;
+  gap: 12px;
+}
+
+.source-actions {
+  align-items: end;
+  gap: 9px;
+}
+
+.tab-field {
+  flex: 1;
+}
+
+.load-button {
+  white-space: nowrap;
+}
+
+.source-status {
+  min-height: 34px;
+  margin-top: 11px;
+}
+
+.table-meta {
+  justify-content: space-between;
+  gap: 10px;
+  margin: 5px 0 10px;
+}
+
+.table-meta h3 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.record-count {
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: #475569;
+  background: #f1f5f9;
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.table-scroll {
+  max-height: 370px;
+  min-height: 126px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.table-scroll:focus-visible {
+  outline: 3px solid rgb(49 87 213 / 20%);
+  outline-offset: 2px;
+}
+
+.table-placeholder {
+  margin: 0;
+  padding: 22px 16px;
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+}
+
+.data-table th,
+.data-table td {
+  max-width: 240px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #edf0f5;
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+
+.data-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  color: #475569;
+  background: #f8fafc;
+  font-weight: 700;
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.privacy-note {
+  margin: 19px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+@media (max-width: 820px) {
+  .sources-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .header-content,
+  .page-content {
+    width: min(100% - 32px, 1160px);
+  }
+
+  .header-content {
+    min-height: 68px;
+  }
+
+  .brand-caption {
+    max-width: 200px;
+    font-size: 10px;
+  }
+
+  .brand strong {
+    font-size: 12px;
+  }
+
+  .phase-badge {
+    padding: 7px 9px;
+    font-size: 10px;
+  }
+
+  .page-content {
+    padding-top: 32px;
+  }
+
+  .connection-card,
+  .source-card {
+    padding: 17px;
+  }
+
+  .connection-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .connection-controls .button {
+    width: 100%;
+  }
+
+  .source-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .load-button {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+    </style>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="header-content">
+        <a class="brand" href="./" aria-label="Configuración de tribunales, inicio">
+          <span class="brand-mark" aria-hidden="true">T</span>
+          <span>
+            <strong>Configuración de tribunales</strong>
+            <span class="brand-caption">Defensas de Trabajo Fin de Máster</span>
+          </span>
+        </a>
+        <span class="phase-badge">Fase 1 · Fuentes de datos</span>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <section class="intro" aria-labelledby="page-title">
+        <p class="eyebrow">Espacio de trabajo</p>
+        <h1 id="page-title">Conecta tus hojas de cálculo</h1>
+        <p class="intro-copy">
+          Configura las fuentes de alumnos y profesorado para consultar sus datos.
+          En esta fase no se realizan asignaciones de tribunales.
+        </p>
+      </section>
+
+      <section class="connection-card" aria-labelledby="connection-title">
+        <div class="section-heading">
+          <div>
+            <h2 id="connection-title">Conexión segura con Google</h2>
+            <p>La aplicación solo solicita permiso de lectura. La autorización no se guarda en este navegador.</p>
+          </div>
+          <span class="lock-icon" aria-hidden="true">▣</span>
+        </div>
+        <div class="connection-controls">
+          <label class="field client-field" for="client-id">
+            <span>OAuth Client ID</span>
+            <input
+              id="client-id"
+              name="client-id"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="1234567890-abc.apps.googleusercontent.com"
+              aria-describedby="client-help"
+            >
+            <small id="client-help">Se utiliza solo en esta sesión; no se almacena.</small>
+          </label>
+          <button class="button button-primary" id="connect-button" type="button">
+            Autorizar lectura
+          </button>
+        </div>
+        <p class="connection-status" id="connection-status" role="status" aria-live="polite">
+          Introduce el Client ID para autorizar el acceso de solo lectura.
+        </p>
+      </section>
+
+      <section class="sources-grid" aria-label="Fuentes de datos">
+        <article class="source-card" aria-labelledby="students-title">
+          <div class="source-heading">
+            <span class="source-icon students-icon" aria-hidden="true">01</span>
+            <div>
+              <p class="eyebrow">Fuente 01</p>
+              <h2 id="students-title">Alumnos y entregas</h2>
+            </div>
+          </div>
+          <form class="source-form" id="students-form" data-source="students">
+            <label class="field" for="students-url">
+              <span>URL del documento de Google Sheets</span>
+              <input
+                id="students-url"
+                name="url"
+                type="url"
+                inputmode="url"
+                autocomplete="url"
+                placeholder="https://docs.google.com/spreadsheets/d/…"
+                required
+              >
+            </label>
+            <div class="source-actions">
+              <label class="field tab-field" for="students-tab">
+                <span>Pestaña</span>
+                <select id="students-tab" name="tab" disabled>
+                  <option value="">Primero carga el documento</option>
+                </select>
+              </label>
+              <button class="button button-secondary load-button" type="submit">Cargar pestañas</button>
+            </div>
+          </form>
+          <p class="source-status" id="students-status" role="status" aria-live="polite">
+            Introduce la URL del documento para empezar.
+          </p>
+          <div class="table-meta">
+            <h3>Vista previa de datos</h3>
+            <span class="record-count" id="students-count">0 registros</span>
+          </div>
+          <div class="table-scroll" id="students-table-wrap" tabindex="0" aria-label="Tabla de alumnos y entregas">
+            <p class="table-placeholder">Los datos aparecerán aquí al cargar una pestaña.</p>
+          </div>
+        </article>
+
+        <article class="source-card" aria-labelledby="staff-title">
+          <div class="source-heading">
+            <span class="source-icon staff-icon" aria-hidden="true">02</span>
+            <div>
+              <p class="eyebrow">Fuente 02</p>
+              <h2 id="staff-title">Profesorado</h2>
+            </div>
+          </div>
+          <p class="source-description">Directores de TFM y miembros de tribunales.</p>
+          <form class="source-form" id="staff-form" data-source="staff">
+            <label class="field" for="staff-url">
+              <span>URL del documento de Google Sheets</span>
+              <input
+                id="staff-url"
+                name="url"
+                type="url"
+                inputmode="url"
+                autocomplete="url"
+                placeholder="https://docs.google.com/spreadsheets/d/…"
+                required
+              >
+            </label>
+            <div class="source-actions">
+              <label class="field tab-field" for="staff-tab">
+                <span>Pestaña</span>
+                <select id="staff-tab" name="tab" disabled>
+                  <option value="">Primero carga el documento</option>
+                </select>
+              </label>
+              <button class="button button-secondary load-button" type="submit">Cargar pestañas</button>
+            </div>
+          </form>
+          <p class="source-status" id="staff-status" role="status" aria-live="polite">
+            Introduce la URL del documento para empezar.
+          </p>
+          <div class="table-meta">
+            <h3>Vista previa de datos</h3>
+            <span class="record-count" id="staff-count">0 registros</span>
+          </div>
+          <div class="table-scroll" id="staff-table-wrap" tabindex="0" aria-label="Tabla de profesorado">
+            <p class="table-placeholder">Los datos aparecerán aquí al cargar una pestaña.</p>
+          </div>
+        </article>
+      </section>
+      <p class="privacy-note">
+        Las URL se guardan localmente en este navegador. Los datos se consultan directamente
+        en Google Sheets y no se envían a otro servidor.
+      </p>
+    </main>
+    <script>
+const SHEETS_API_BASE = "https://sheets.googleapis.com/v4/spreadsheets";
+const SPREADSHEETS_READONLY_SCOPE = "https://www.googleapis.com/auth/spreadsheets.readonly";
+
+class SheetsClient {
+  #accessToken;
+
+  setAccessToken(accessToken) {
+    this.#accessToken = accessToken;
+  }
+
+  clearAccessToken() {
+    this.#accessToken = undefined;
+  }
+
+  get hasAccessToken() {
+    return Boolean(this.#accessToken);
+  }
+
+  static get readonlyScope() {
+    return SPREADSHEETS_READONLY_SCOPE;
+  }
+
+  parseSpreadsheetId(value) {
+    let url;
+    try {
+      url = new URL(value);
+    } catch {
+      throw new Error("Introduce una URL válida de Google Sheets.");
+    }
+
+    if (url.protocol !== "https:" || url.hostname !== "docs.google.com") {
+      throw new Error("La URL debe pertenecer a docs.google.com y usar HTTPS.");
+    }
+
+    const match = url.pathname.match(/^\/spreadsheets\/d\/([a-zA-Z0-9_-]+)(?:\/|$)/);
+    if (!match) {
+      throw new Error("No se encontró el identificador del documento en la URL.");
+    }
+    return match[1];
+  }
+
+  async listSheets(spreadsheetId) {
+    const data = await this.#request(
+      `${SHEETS_API_BASE}/${encodeURIComponent(spreadsheetId)}?fields=${encodeURIComponent("properties.title,sheets.properties(sheetId,title,index)")}`
+    );
+
+    if (!data || typeof data !== "object") {
+      throw new Error("Google Sheets devolvió metadatos con un formato no válido.");
+    }
+    if (!Array.isArray(data.sheets) || data.sheets.length === 0) {
+      throw new Error("El documento no contiene pestañas disponibles.");
+    }
+
+    const sheets = data.sheets
+      .map((sheet) => sheet?.properties)
+      .filter((properties) => properties && typeof properties.title === "string")
+      .sort((first, second) => (first.index ?? 0) - (second.index ?? 0));
+    if (sheets.length === 0) {
+      throw new Error("Google Sheets devolvió una lista de pestañas con un formato no válido.");
+    }
+    return sheets;
+  }
+
+  async readSheet(spreadsheetId, title) {
+    const escapedTitle = title.replaceAll("'", "''");
+    const range = `'${escapedTitle}'!A:ZZZ`;
+    const url = `${SHEETS_API_BASE}/${encodeURIComponent(spreadsheetId)}/values/${encodeURIComponent(range)}`;
+    const data = await this.#request(url);
+    if (!data || typeof data !== "object") {
+      throw new Error("Google Sheets devolvió datos con un formato no válido.");
+    }
+    return this.#normalizeRows(data.values ?? []);
+  }
+
+  async #request(url) {
+    if (!this.#accessToken) {
+      throw new Error("Autoriza primero la lectura de Google Sheets.");
+    }
+
+    let response;
+    try {
+      response = await fetch(url, {
+        headers: { Authorization: `Bearer ${this.#accessToken}` },
+      });
+    } catch (error) {
+      throw new Error(`No se pudo conectar con Google Sheets: ${error.message}`);
+    }
+
+    let payload;
+    try {
+      payload = await response.json();
+    } catch {
+      throw new Error("Google Sheets devolvió una respuesta que no se pudo interpretar.");
+    }
+
+    if (!response.ok) {
+      const apiMessage = payload?.error?.message;
+      if (response.status === 401) {
+        this.clearAccessToken();
+        throw new Error("La autorización ha caducado o no es válida. Vuelve a autorizar el acceso.");
+      }
+      if (response.status === 403) {
+        throw new Error("Acceso denegado. Comprueba que tu cuenta puede ver el documento y que Sheets API está habilitada.");
+      }
+      if (response.status === 404) {
+        throw new Error("No se encontró el documento. Revisa su URL y que siga disponible.");
+      }
+      if (response.status === 400) {
+        throw new Error(`La solicitud o el formato de la hoja no es válido${apiMessage ? `: ${apiMessage}` : "."}`);
+      }
+      throw new Error(`Error de Google Sheets (${response.status})${apiMessage ? `: ${apiMessage}` : "."}`);
+    }
+
+    return payload;
+  }
+
+  #normalizeRows(rows) {
+    if (!Array.isArray(rows)) {
+      throw new Error("El formato de los datos de la pestaña no es válido.");
+    }
+
+    const headerIndex = rows.findIndex(
+      (row) => Array.isArray(row) && row.some((cell) => String(cell ?? "").trim() !== "")
+    );
+
+    if (headerIndex === -1) {
+      return { headers: [], records: [] };
+    }
+
+    const headerCells = rows[headerIndex];
+    const width = rows.slice(headerIndex + 1).reduce(
+      (maximum, row) => Array.isArray(row) ? Math.max(maximum, row.length) : maximum,
+      headerCells.length
+    );
+    const headers = Array.from({ length: width }, (_, index) => {
+      const label = String(headerCells[index] ?? "").trim();
+      return label || `Columna ${index + 1}`;
+    });
+    const records = rows
+      .slice(headerIndex + 1)
+      .filter((row) => Array.isArray(row) && row.some((cell) => String(cell ?? "").trim() !== ""))
+      .map((row) => headers.map((_, index) => String(row[index] ?? "")));
+
+    return { headers, records };
+  }
+}
+
+
+const STORAGE_KEY = "configuracion-tribunales.sheet-urls.v1";
+const client = new SheetsClient();
+const sources = new Map();
+let tokenClient;
+
+const elements = {
+  clientId: document.querySelector("#client-id"),
+  connectButton: document.querySelector("#connect-button"),
+  connectionStatus: document.querySelector("#connection-status"),
+};
+
+for (const name of ["students", "staff"]) {
+  const form = document.querySelector(`#${name}-form`);
+  const input = form.elements.url;
+  const select = form.elements.tab;
+  const source = {
+    name,
+    form,
+    input,
+    select,
+    status: document.querySelector(`#${name}-status`),
+    count: document.querySelector(`#${name}-count`),
+    table: document.querySelector(`#${name}-table-wrap`),
+    loadButton: form.querySelector(".load-button"),
+    spreadsheetId: undefined,
+    tabs: [],
+    requestNumber: 0,
+  };
+  sources.set(name, source);
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    loadSourceTabs(source);
+  });
+
+  input.addEventListener("input", () => {
+    clearSourceData(source);
+    saveSourceUrl(source);
+  });
+
+  select.addEventListener("change", () => {
+    const selectedTab = source.tabs.find((tab) => String(tab.sheetId) === select.value);
+    if (selectedTab) {
+      loadSourceData(source, selectedTab);
+    }
+  });
+}
+
+restoreSourceUrls();
+elements.connectButton.addEventListener("click", authorizeGoogle);
+
+function restoreSourceUrls() {
+  let savedUrls = {};
+  try {
+    const parsedUrls = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
+    if (parsedUrls && typeof parsedUrls === "object" && !Array.isArray(parsedUrls)) {
+      savedUrls = parsedUrls;
+    } else {
+      throw new Error("El formato de las URL guardadas no es válido.");
+    }
+  } catch (error) {
+    setConnectionStatus(`No se pudieron recuperar las URL guardadas: ${error.message}`, "error");
+  }
+
+  for (const source of sources.values()) {
+    const savedUrl = savedUrls[source.name];
+    if (typeof savedUrl === "string") {
+      source.input.value = savedUrl;
+    }
+  }
+}
+
+function saveSourceUrl(source) {
+  try {
+    const savedUrls = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
+    if (!savedUrls || typeof savedUrls !== "object" || Array.isArray(savedUrls)) {
+      throw new Error("El formato de las URL guardadas no es válido.");
+    }
+    savedUrls[source.name] = source.input.value;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedUrls));
+    setSourceStatus(source, "URL guardada en este navegador.");
+  } catch (error) {
+    setSourceStatus(source, `No se pudo guardar la URL en este navegador: ${error.message}`, "error");
+  }
+}
+
+function authorizeGoogle() {
+  const clientId = elements.clientId.value.trim();
+  if (!clientId) {
+    setConnectionStatus("Introduce el OAuth Client ID de tu aplicación de Google Cloud.", "error");
+    elements.clientId.focus();
+    return;
+  }
+  if (!window.google?.accounts?.oauth2) {
+    setConnectionStatus("No se pudo cargar Google Identity Services. Comprueba tu conexión y vuelve a intentarlo.", "error");
+    return;
+  }
+
+  client.clearAccessToken();
+  elements.connectButton.disabled = true;
+  setConnectionStatus("Esperando la autorización de Google…");
+  try {
+    tokenClient = window.google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: SheetsClient.readonlyScope,
+      callback: handleAuthorizationResponse,
+      error_callback: handleAuthorizationPopupError,
+    });
+    tokenClient.requestAccessToken();
+  } catch (error) {
+    elements.connectButton.disabled = false;
+    setConnectionStatus(`No se pudo iniciar la autorización: ${error.message}`, "error");
+  }
+}
+
+function handleAuthorizationResponse(response) {
+  elements.connectButton.disabled = false;
+  if (response.error) {
+    setConnectionStatus(`Google no concedió acceso: ${response.error_description ?? response.error}.`, "error");
+    return;
+  }
+  if (!response.access_token) {
+    setConnectionStatus("Google no devolvió un token de acceso válido.", "error");
+    return;
+  }
+
+  client.setAccessToken(response.access_token);
+  setConnectionStatus("Autorización activa. El token solo se conserva en memoria mientras esta página está abierta.", "success");
+}
+
+function handleAuthorizationPopupError(error) {
+  elements.connectButton.disabled = false;
+  const description = error.type === "popup_closed"
+    ? "Se cerró la ventana de autorización antes de completarla."
+    : `No se pudo abrir la ventana de autorización (${error.type}).`;
+  setConnectionStatus(description, "error");
+}
+
+async function loadSourceTabs(source) {
+  clearSourceData(source);
+  const requestNumber = ++source.requestNumber;
+
+  let spreadsheetId;
+  try {
+    spreadsheetId = client.parseSpreadsheetId(source.input.value.trim());
+  } catch (error) {
+    setSourceStatus(source, error.message, "error");
+    return;
+  }
+  if (!client.hasAccessToken) {
+    setSourceStatus(source, "Autoriza primero el acceso de solo lectura con Google.", "error");
+    return;
+  }
+
+  source.spreadsheetId = spreadsheetId;
+  source.loadButton.disabled = true;
+  setSourceStatus(source, "Consultando las pestañas disponibles…");
+  try {
+    const tabs = await client.listSheets(spreadsheetId);
+    if (requestNumber !== source.requestNumber) return;
+    source.tabs = tabs;
+    source.select.replaceChildren(
+      ...tabs.map((tab) => {
+        const option = document.createElement("option");
+        option.value = String(tab.sheetId);
+        option.textContent = tab.title;
+        return option;
+      })
+    );
+    source.select.disabled = false;
+    setSourceStatus(source, `${tabs.length} ${tabs.length === 1 ? "pestaña disponible" : "pestañas disponibles"}.`);
+    await loadSourceData(source, tabs[0]);
+  } catch (error) {
+    if (requestNumber === source.requestNumber) {
+      setSourceStatus(source, error.message, "error");
+      if (!client.hasAccessToken) {
+        setConnectionStatus("La autorización ha caducado. Vuelve a autorizar el acceso.", "error");
+      }
+    }
+  } finally {
+    if (requestNumber === source.requestNumber) source.loadButton.disabled = false;
+  }
+}
+
+async function loadSourceData(source, tab) {
+  const requestNumber = ++source.requestNumber;
+  source.loadButton.disabled = true;
+  setSourceStatus(source, `Leyendo la pestaña «${tab.title}»…`);
+  try {
+    const result = await client.readSheet(source.spreadsheetId, tab.title);
+    if (requestNumber !== source.requestNumber) return;
+    renderTable(source, result);
+    setSourceStatus(source, result.headers.length ? `Datos de «${tab.title}» cargados.` : `La pestaña «${tab.title}» está vacía.`);
+  } catch (error) {
+    if (requestNumber === source.requestNumber) {
+      renderTable(source, { headers: [], records: [] });
+      setSourceStatus(source, error.message, "error");
+      if (!client.hasAccessToken) {
+        setConnectionStatus("La autorización ha caducado. Vuelve a autorizar el acceso.", "error");
+      }
+    }
+  } finally {
+    if (requestNumber === source.requestNumber) source.loadButton.disabled = false;
+  }
+}
+
+function clearSourceData(source) {
+  source.requestNumber += 1;
+  source.loadButton.disabled = false;
+  source.spreadsheetId = undefined;
+  source.tabs = [];
+  source.select.replaceChildren(new Option("Primero carga el documento", ""));
+  source.select.disabled = true;
+  renderTable(source, { headers: [], records: [] });
+  source.status.classList.remove("status-error", "status-success");
+  source.status.textContent = source.input.value
+    ? "Carga las pestañas del documento cuando hayas terminado de editar la URL."
+    : "Introduce la URL del documento para empezar.";
+}
+
+function renderTable(source, result) {
+  source.count.textContent = formatRecordCount(result.records.length);
+  if (result.headers.length === 0) {
+    source.table.replaceChildren(makePlaceholder("No se encontraron encabezados ni registros en esta pestaña."));
+    return;
+  }
+
+  const table = document.createElement("table");
+  table.className = "data-table";
+  const head = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+  for (const header of result.headers) {
+    const cell = document.createElement("th");
+    cell.scope = "col";
+    cell.textContent = header;
+    headerRow.append(cell);
+  }
+  head.append(headerRow);
+  const body = document.createElement("tbody");
+  for (const record of result.records) {
+    const row = document.createElement("tr");
+    for (const value of record) {
+      const cell = document.createElement("td");
+      cell.textContent = value;
+      row.append(cell);
+    }
+    body.append(row);
+  }
+  table.append(head, body);
+  source.table.replaceChildren(table);
+}
+
+function makePlaceholder(message) {
+  const placeholder = document.createElement("p");
+  placeholder.className = "table-placeholder";
+  placeholder.textContent = message;
+  return placeholder;
+}
+
+function formatRecordCount(count) {
+  return `${count} ${count === 1 ? "registro" : "registros"}`;
+}
+
+function setConnectionStatus(message, kind = "") {
+  elements.connectionStatus.textContent = message;
+  elements.connectionStatus.classList.toggle("status-error", kind === "error");
+  elements.connectionStatus.classList.toggle("status-success", kind === "success");
+}
+
+function setSourceStatus(source, message, kind = "") {
+  source.status.textContent = message;
+  source.status.classList.toggle("status-error", kind === "error");
+  source.status.classList.toggle("status-success", kind === "success");
+}
+    </script>
+  </body>
+</html>
