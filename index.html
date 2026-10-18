@@ -730,7 +730,7 @@ h1 {
             <span class="brand-caption">Defensas de Trabajo Fin de Máster</span>
           </span>
         </a>
-        <span class="app-version" title="Versión de la aplicación">v1.3.0</span>
+        <span class="app-version" title="Versión de la aplicación">v1.4.0</span>
       </div>
       <nav class="app-tabs" role="tablist" aria-label="Secciones de la aplicación">
         <button
@@ -746,6 +746,7 @@ h1 {
         <button class="app-tab" id="tab-students" type="button" role="tab" aria-selected="false" aria-controls="panel-students" tabindex="-1">Alumnos</button>
         <button class="app-tab" id="tab-tfms" type="button" role="tab" aria-selected="false" aria-controls="panel-tfms" tabindex="-1">TFMs</button>
         <button class="app-tab" id="tab-presented" type="button" role="tab" aria-selected="false" aria-controls="panel-presented" tabindex="-1">TFMs Presentados</button>
+        <button class="app-tab" id="tab-tribunals" type="button" role="tab" aria-selected="false" aria-controls="panel-tribunals" tabindex="-1">Tribunales</button>
         <button class="app-tab" id="tab-availability" type="button" role="tab" aria-selected="false" aria-controls="panel-availability" tabindex="-1">Disponibilidad</button>
       </nav>
     </header>
@@ -1046,6 +1047,15 @@ h1 {
         <p class="source-status" id="presented-view-status" role="status" aria-live="polite">Autoriza Google y configura la URL de Alumnos y entregas para consultar los TFMs presentados.</p>
         <div class="table-scroll data-view-table" id="presented-view-table" tabindex="0" aria-label="Tabla de TFMs presentados"></div>
       </section>
+      <section class="data-view-panel" id="panel-tribunals" role="tabpanel" aria-labelledby="tab-tribunals" tabindex="0" hidden>
+        <div class="intro">
+          <p class="eyebrow">Composición de tribunales</p>
+          <h1>Tribunales</h1>
+          <p class="intro-copy">Un registro por TFM presentado (tribunal = SI). La fecha, hora y miembros del tribunal se asignarán más adelante.</p>
+        </div>
+        <p class="source-status" id="tribunals-view-status" role="status" aria-live="polite">Autoriza Google y configura la URL de Alumnos y entregas para cargar los tribunales.</p>
+        <div class="table-scroll data-view-table" id="tribunals-view-table" tabindex="0" aria-label="Tabla de tribunales"></div>
+      </section>
       <section class="data-view-panel" id="panel-availability" role="tabpanel" aria-labelledby="tab-availability" tabindex="0" hidden>
         <div class="intro">
           <p class="eyebrow">Otros Datos</p>
@@ -1259,6 +1269,15 @@ const DERIVED_VIEWS = {
     filterColumn: "tribunal",
     filterValue: "SI",
   },
+  tribunals: {
+    source: "students",
+    sheet: "asignacion alumno-profesor",
+    statusId: "tribunals-view-status",
+    tableId: "tribunals-view-table",
+    filterColumn: "tribunal",
+    filterValue: "SI",
+    tribunalMapping: true,
+  },
 };
 
 const AVAILABILITY_SHEETS = ["Disponibilidad_1", "Disponibilidad_2", "Disponibilidad_3"];
@@ -1409,7 +1428,9 @@ async function loadDerivedView(viewName) {
     const filtered = view.filterColumn
       ? filterRecordsByColumn(result, view.filterColumn, view.filterValue)
       : result;
-    const projected = projectColumns(filtered, view.columns);
+    const projected = view.tribunalMapping
+      ? mapTribunals(filtered)
+      : projectColumns(filtered, view.columns);
     renderDataTable(table, projected.headers, projected.records);
     setViewStatus(status, view.filterColumn
       ? `${formatRecordCount(projected.records.length)} con «${view.filterColumn}» = «${view.filterValue}» (de ${result.records.length} TFMs).`
@@ -1513,6 +1534,18 @@ function projectColumns(result, requiredColumns) {
   return {
     headers: requiredColumns,
     records: result.records.map((record) => indexes.map((index) => record[index] ?? "")),
+  };
+}
+
+function mapTribunals(result) {
+  const indexByName = new Map(result.headers.map((name, index) => [normalizeColumnName(name), index]));
+  const sourceFields = ["e-mail alumno", "e-mail-profesor", "e-mail profesor2"];
+  const missing = sourceFields.filter((name) => !indexByName.has(normalizeColumnName(name)));
+  if (missing.length) throw new Error(`Faltan columnas requeridas en la hoja de TFMs: ${missing.join(", ")}.`);
+  const [student, tutor1, tutor2] = sourceFields.map((name) => indexByName.get(normalizeColumnName(name)));
+  return {
+    headers: ["Alumno", "Fecha", "Hora", "Presidente", "Secretario", "Vocal", "Tutor1", "Tutor2"],
+    records: result.records.map((record) => [record[student] ?? "", "", "", "", "", "", record[tutor1] ?? "", record[tutor2] ?? ""]),
   };
 }
 
