@@ -748,7 +748,7 @@ h1 {
             <span class="brand-caption">Defensas de Trabajo Fin de Máster</span>
           </span>
         </a>
-        <span class="app-version" title="Versión de la aplicación">v1.6.1</span>
+        <span class="app-version" title="Versión de la aplicación">v1.7.0</span>
       </div>
       <nav class="app-tabs" role="tablist" aria-label="Secciones de la aplicación">
         <button
@@ -1499,10 +1499,11 @@ async function generateRandomTribunals() {
     setViewStatus(status, "Autoriza primero Google en Configuración.", "error");
     return;
   }
-  let studentsId, otherId;
+  let studentsId, otherId, staffId;
   try {
     studentsId = client.parseSpreadsheetId(sources.get("students").input.value.trim());
     otherId = client.parseSpreadsheetId(sources.get("otherData").input.value.trim());
+    staffId = client.parseSpreadsheetId(sources.get("staff").input.value.trim());
   } catch (error) {
     setViewStatus(status, "Configura las fuentes «Alumnos y entregas» y «Otros Datos»: " + error.message, "error");
     return;
@@ -1510,9 +1511,10 @@ async function generateRandomTribunals() {
   button.disabled = true;
   setViewStatus(status, "Cargando configuración y la última pestaña de disponibilidad…");
   try {
-    const [configuration, sheets] = await Promise.all([
+    const [configuration, sheets, tutors] = await Promise.all([
       client.readSheet(studentsId, "Configuración"),
       client.listSheets(otherId),
+      client.readSheet(staffId, "Tutores"),
     ]);
     if (requestNumber !== tribunalGenerationRequest) return;
     const available = sheets.filter(sheet => /^Disponibilidad_[1-3]$/.test(sheet.title))
@@ -1521,7 +1523,7 @@ async function generateRandomTribunals() {
     const selection = available[0].title;
     const availability = await client.readSheet(otherId, selection);
     if (requestNumber !== tribunalGenerationRequest) return;
-    const solution = window.TribunalGenerator.generate(tribunalBaseData, configuration, availability);
+    const solution = window.TribunalGenerator.generate(tribunalBaseData, configuration, availability, tutors);
     renderDataTable(table, solution.headers, solution.records);
     setViewStatus(status, `Asignación provisional: ${solution.assigned} de ${solution.records.length} tribunales completos. Fuente: ${selection}. Defensas de 60 minutos.` +
       (solution.notices.length ? ` Sin asignar: ${solution.notices.length}. ${solution.notices.slice(0, 3).join(" ")}` : ""), solution.notices.length ? "error" : "success");
@@ -1561,9 +1563,11 @@ async function loadAvailabilityView() {
   try {
     const configSource = sources.get("students");
     const configurationId = client.parseSpreadsheetId(configSource.input.value.trim());
-    const [sheets, configurationSheet] = await Promise.all([
+    const staffId = client.parseSpreadsheetId(sources.get("staff").input.value.trim());
+    const [sheets, configurationSheet, tutors] = await Promise.all([
       client.listSheets(spreadsheetId),
       client.readSheet(configurationId, "Configuración"),
+      client.readSheet(staffId, "Tutores"),
     ]);
     const configuration = window.TribunalGenerator.getConfiguration(configurationSheet);
     if (viewRequests.get(viewName) !== requestNumber) return;
@@ -1595,7 +1599,7 @@ async function loadAvailabilityView() {
         renderAvailabilitySection(visual, entry.title, null, entry.error.message);
       } else {
         renderAvailabilitySection(tables, entry.title, entry.result);
-        renderAvailabilityVisual(visual, entry.title, entry.result, configuration);
+        renderAvailabilityVisual(visual, entry.title, entry.result, configuration, tutors);
       }
     }
     if (failedSheets && !client.hasAccessToken) {
@@ -1694,7 +1698,7 @@ function renderDataTable(container, headers, records) {
   container.replaceChildren(table);
 }
 
-function renderAvailabilityVisual(container, title, result, config) {
+function renderAvailabilityVisual(container, title, result, config, tutors) {
   const section = document.createElement("section");
   section.className = "availability-table-section";
   const heading = document.createElement("h2");
@@ -1703,12 +1707,13 @@ function renderAvailabilityVisual(container, title, result, config) {
   try {
     const generator = window.TribunalGenerator;
     const { schedule } = generator.availabilitySlots(result);
+    const roleMap = generator.tutorRoles(tutors);
     const dates = generator.allowedDates(config);
     const hours = generator.allowedTimes(config);
     const emails = [...schedule.keys()];
     const caption = document.createElement("p");
     caption.className = "availability-legend";
-    caption.textContent = "Verde: el profesor está disponible durante la hora completa. Blanco: no disponible. ROL pendiente de configurar.";
+    caption.textContent = "Verde: el profesor está disponible durante la hora completa. Blanco: no disponible. ROL obtenido de la hoja Tutores.";
     section.append(caption);
     const wrapper = document.createElement("div");
     wrapper.className = "table-scroll availability-matrix-wrap";
@@ -1747,8 +1752,8 @@ function renderAvailabilityVisual(container, title, result, config) {
       mail.textContent = address;
       tr.append(mail);
       const role = document.createElement("td");
-      role.textContent = "";
-      role.title = "ROL: pendiente de definir";
+      role.textContent = ["P", "S", "V"].filter(value => roleMap.get(address)?.has(value)).join(",");
+      role.title = role.textContent || "Sin roles autorizados en Tutores";
       tr.append(role);
       for (const date of dates) {
         for (const hour of hours) {
