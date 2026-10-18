@@ -463,6 +463,17 @@ h1 {
 .availability-mode-tabs button { padding: 9px 16px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
 .availability-mode-tabs button[aria-selected="true"] { background: #e8edff; font-weight: 700; }
 .availability-yes { background: #dcfce7; color: #166534; font-weight: 650; }
+.availability-matrix-wrap { max-height: 520px !important; }
+.availability-matrix { width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; }
+.availability-matrix th, .availability-matrix td { border-right: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1; padding: 3px 5px; white-space: nowrap; text-align: center; }
+.availability-matrix thead th { background: #f8fafc; font-size: 11px; }
+.availability-matrix thead tr:first-child th { top: 0; z-index: 3; }
+.availability-matrix thead tr:nth-child(2) th { top: 25px; z-index: 2; }
+.availability-matrix tbody th { text-align: left; position: sticky; left: 0; background: var(--surface); min-width: 175px; z-index: 1; }
+.availability-matrix tbody td:nth-child(2) { min-width: 42px; }
+.availability-matrix td.availability-yes { background: #00c9a7; min-width: 26px; height: 23px; }
+.availability-matrix td.availability-no { background: #fff; min-width: 26px; height: 23px; }
+
 .availability-no { color: #94a3b8; }
 .availability-legend { margin: 8px 0; color: var(--muted); font-size: 12px; }
 
@@ -737,7 +748,7 @@ h1 {
             <span class="brand-caption">Defensas de Trabajo Fin de Máster</span>
           </span>
         </a>
-        <span class="app-version" title="Versión de la aplicación">v1.5.0</span>
+        <span class="app-version" title="Versión de la aplicación">v1.6.0</span>
       </div>
       <nav class="app-tabs" role="tablist" aria-label="Secciones de la aplicación">
         <button
@@ -1548,7 +1559,13 @@ async function loadAvailabilityView() {
 
   setViewStatus(status, "Buscando pestañas de disponibilidad…");
   try {
-    const sheets = await client.listSheets(spreadsheetId);
+    const configSource = sources.get("students");
+    const configurationId = client.parseSpreadsheetId(configSource.input.value.trim());
+    const [sheets, configurationSheet] = await Promise.all([
+      client.listSheets(spreadsheetId),
+      client.readSheet(configurationId, "Configuración"),
+    ]);
+    const configuration = window.TribunalGenerator.getConfiguration(configurationSheet);
     if (viewRequests.get(viewName) !== requestNumber) return;
     const availableSheets = AVAILABILITY_SHEETS.filter((title) =>
       sheets.some((sheet) => sheet.title === title)
@@ -1578,7 +1595,7 @@ async function loadAvailabilityView() {
         renderAvailabilitySection(visual, entry.title, null, entry.error.message);
       } else {
         renderAvailabilitySection(tables, entry.title, entry.result);
-        renderAvailabilityVisual(visual, entry.title, entry.result);
+        renderAvailabilityVisual(visual, entry.title, entry.result, configuration);
       }
     }
     if (failedSheets && !client.hasAccessToken) {
@@ -1677,43 +1694,71 @@ function renderDataTable(container, headers, records) {
   container.replaceChildren(table);
 }
 
-function renderAvailabilityVisual(container, title, result) {
+function renderAvailabilityVisual(container, title, result, config) {
   const section = document.createElement("section");
   section.className = "availability-table-section";
   const heading = document.createElement("h2");
   heading.textContent = title;
   section.append(heading);
   try {
-    const { schedule, dates } = window.TribunalGenerator.availabilitySlots(result);
+    const generator = window.TribunalGenerator;
+    const { schedule } = generator.availabilitySlots(result);
+    const dates = generator.allowedDates(config);
+    const hours = generator.allowedTimes(config);
     const emails = [...schedule.keys()];
     const caption = document.createElement("p");
     caption.className = "availability-legend";
-    caption.textContent = "Cada celda muestra las franjas de 60 minutos disponibles. — indica ausencia de disponibilidad.";
+    caption.textContent = "Verde: el profesor está disponible durante la hora completa. Blanco: no disponible. ROL pendiente de configurar.";
     section.append(caption);
     const wrapper = document.createElement("div");
-    wrapper.className = "table-scroll";
+    wrapper.className = "table-scroll availability-matrix-wrap";
     const table = document.createElement("table");
-    table.className = "data-table";
+    table.className = "data-table availability-matrix";
     const thead = document.createElement("thead");
-    const header = document.createElement("tr");
-    for (const name of ["Correo Electronico", ...dates.map(date => date.split("-").reverse().join("/"))]) {
+    const dateRow = document.createElement("tr");
+    const timeRow = document.createElement("tr");
+    for (const label of ["Correo Electronico", "ROL"]) {
       const th = document.createElement("th");
-      th.textContent = name;
-      header.append(th);
+      th.scope = "col";
+      th.rowSpan = 2;
+      th.textContent = label;
+      dateRow.append(th);
     }
-    thead.append(header);
+    for (const date of dates) {
+      const dateHeader = document.createElement("th");
+      dateHeader.scope = "colgroup";
+      dateHeader.colSpan = hours.length;
+      dateHeader.textContent = date.split("-").reverse().join("/");
+      dateRow.append(dateHeader);
+      for (const hour of hours) {
+        const hourHeader = document.createElement("th");
+        hourHeader.scope = "col";
+        hourHeader.textContent = hour.slice(0, 2);
+        hourHeader.title = hour + " a " + String(Number(hour.slice(0, 2)) + 1).padStart(2, "0") + ":00";
+        timeRow.append(hourHeader);
+      }
+    }
+    thead.append(dateRow, timeRow);
     const tbody = document.createElement("tbody");
     for (const address of emails) {
       const tr = document.createElement("tr");
-      const mail = document.createElement("td");
+      const mail = document.createElement("th");
+      mail.scope = "row";
       mail.textContent = address;
       tr.append(mail);
+      const role = document.createElement("td");
+      role.textContent = "";
+      role.title = "ROL: pendiente de definir";
+      tr.append(role);
       for (const date of dates) {
-        const td = document.createElement("td");
-        const slots = [...(schedule.get(address).get(date) ?? [])].sort();
-        td.textContent = slots.length ? slots.join(" · ") : "—";
-        td.className = slots.length ? "availability-yes" : "availability-no";
-        tr.append(td);
+        for (const hour of hours) {
+          const td = document.createElement("td");
+          const available = generator.availableAt(schedule, address, date, hour);
+          td.className = available ? "availability-yes" : "availability-no";
+          td.title = address + " · " + date + " · " + hour + (available ? " · Disponible" : " · No disponible");
+          td.setAttribute("aria-label", td.title);
+          tr.append(td);
+        }
       }
       tbody.append(tr);
     }
