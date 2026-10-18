@@ -62,6 +62,45 @@
     if (!times.length) throw new Error("El intervalo horario no permite defensas completas de 60 minutos.");
     return times;
   }
+  function availabilitySlots(result) {
+    const mailColumn = requiredIndex(result, "Correo Electronico");
+    const dateColumns = result.headers.map((header, index) => {
+      const match = String(header).trim().match(/^\[?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{4}|\d{4}-\d{1,2}-\d{1,2})\s*\]?$/);
+      if (!match) return null;
+      return { index, date: parseDate(match[1]).toISOString().slice(0, 10) };
+    }).filter(Boolean);
+    if (!dateColumns.length) throw new Error("No se encontraron columnas con fechas en Disponibilidad.");
+    const schedule = new Map();
+    const invalid = [];
+    for (const row of result.records) {
+      const address = email(row[mailColumn]);
+      if (!address) continue;
+      if (!schedule.has(address)) schedule.set(address, new Map());
+      for (const { index, date } of dateColumns) {
+        const value = String(row[index] ?? "").trim();
+        if (!value) continue;
+        const pattern = /(\d{1,2}:\d{2})\s*(?:a|–|—|-)\s*(\d{1,2}:\d{2})/gi;
+        const ranges = [...value.matchAll(pattern)];
+        const residue = value.replace(pattern, "").replace(/[;,\s]+/g, "");
+        if (!ranges.length || residue) invalid.push(address + " / " + date + ": " + value);
+        const slots = schedule.get(address);
+        if (!slots.has(date)) slots.set(date, new Set());
+        for (const match of ranges) {
+          const start = parseMinutes(match[1]), end = parseMinutes(match[2]);
+          if (end <= start) { invalid.push(address + " / " + date + ": " + match[0]); continue; }
+          // Una defensa tiene que estar completamente contenida en la franja del profesor.
+          for (let minute = start; minute + DURATION <= end; minute += DURATION) {
+            slots.get(date).add(String(Math.floor(minute / 60)).padStart(2, "0") + ":" + String(minute % 60).padStart(2, "0"));
+          }
+        }
+      }
+    }
+    if (invalid.length) throw new Error("Celdas de disponibilidad con formato no reconocido: " + invalid.slice(0, 3).join("; "));
+    return { schedule, dates: [...new Set(dateColumns.map(item => item.date))].sort() };
+  }
+  function availableAt(schedule, person, date, time) {
+    return Boolean(schedule.get(email(person))?.get(date)?.has(time));
+  }
   function eligibleMembers(result) {
     const index = requiredIndex(result, "Correo Electronico");
     const seen = new Set();
@@ -93,6 +132,7 @@
     const config = getConfiguration(configurationSheet);
     const dates = allowedDates(config), times = allowedTimes(config);
     const members = eligibleMembers(availabilitySheet);
+    const { schedule } = availabilitySlots(availabilitySheet);
     if (members.length < 3) throw new Error("Se necesitan al menos tres correos distintos en la disponibilidad seleccionada.");
     const original = tfms.records.map(row => [...row]);
     const result = [];
@@ -109,7 +149,7 @@
         const candidates = shuffle(members);
         const chosen = [];
         for (const [position, validator] of [validPresident, validSecretary, validVocal].entries()) {
-          const candidate = candidates.find(person => !chosen.includes(person) && validator(person, row, chosen, result, date, time));
+          const candidate = candidates.find(person => availableAt(schedule, person, date, time) && !chosen.includes(person) && validator(person, row, chosen, result, date, time));
           if (!candidate) break;
           chosen.push(candidate);
           candidates.splice(candidates.indexOf(candidate), 1);
@@ -127,6 +167,6 @@
     }
     return { headers: tfms.headers, records: assigned, assigned: result.length, notices, availabilityCount: members.length };
   }
-  root.TribunalGenerator = { generate, getConfiguration, allowedDates, allowedTimes, eligibleMembers,
+  root.TribunalGenerator = { generate, getConfiguration, allowedDates, allowedTimes, eligibleMembers, availabilitySlots, availableAt,
     validDate, validTime, validPresident, validSecretary, validVocal, durationMinutes: DURATION };
 })(window);
