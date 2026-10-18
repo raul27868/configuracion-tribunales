@@ -730,7 +730,7 @@ h1 {
             <span class="brand-caption">Defensas de Trabajo Fin de Máster</span>
           </span>
         </a>
-        <span class="app-version" title="Versión de la aplicación">v1.2.0</span>
+        <span class="app-version" title="Versión de la aplicación">v1.3.0</span>
       </div>
       <nav class="app-tabs" role="tablist" aria-label="Secciones de la aplicación">
         <button
@@ -745,6 +745,7 @@ h1 {
         <button class="app-tab" id="tab-tutors" type="button" role="tab" aria-selected="false" aria-controls="panel-tutors" tabindex="-1">Tutores</button>
         <button class="app-tab" id="tab-students" type="button" role="tab" aria-selected="false" aria-controls="panel-students" tabindex="-1">Alumnos</button>
         <button class="app-tab" id="tab-tfms" type="button" role="tab" aria-selected="false" aria-controls="panel-tfms" tabindex="-1">TFMs</button>
+        <button class="app-tab" id="tab-presented" type="button" role="tab" aria-selected="false" aria-controls="panel-presented" tabindex="-1">TFMs Presentados</button>
         <button class="app-tab" id="tab-availability" type="button" role="tab" aria-selected="false" aria-controls="panel-availability" tabindex="-1">Disponibilidad</button>
       </nav>
     </header>
@@ -1036,6 +1037,15 @@ h1 {
         <p class="source-status" id="tfms-view-status" role="status" aria-live="polite">Autoriza Google y configura la URL de Alumnos y entregas para cargar estos datos.</p>
         <div class="table-scroll data-view-table" id="tfms-view-table" tabindex="0" aria-label="Tabla de asignaciones de TFM"></div>
       </section>
+      <section class="data-view-panel" id="panel-presented" role="tabpanel" aria-labelledby="tab-presented" tabindex="0" hidden>
+        <div class="intro">
+          <p class="eyebrow">Preparación de tribunales</p>
+          <h1>TFMs Presentados</h1>
+          <p class="intro-copy">Alumnos que necesitan tribunal: registros de TFMs cuya columna «tribunal» tiene valor «SI».</p>
+        </div>
+        <p class="source-status" id="presented-view-status" role="status" aria-live="polite">Autoriza Google y configura la URL de Alumnos y entregas para consultar los TFMs presentados.</p>
+        <div class="table-scroll data-view-table" id="presented-view-table" tabindex="0" aria-label="Tabla de TFMs presentados"></div>
+      </section>
       <section class="data-view-panel" id="panel-availability" role="tabpanel" aria-labelledby="tab-availability" tabindex="0" hidden>
         <div class="intro">
           <p class="eyebrow">Otros Datos</p>
@@ -1240,6 +1250,15 @@ const DERIVED_VIEWS = {
     tableId: "tfms-view-table",
     columns: ["e-mail alumno", "GRUPO", "alumno", "e-mail-profesor", "profesor", "e-mail profesor2", "profesor2", "Doctor", "tema", "EMAIL_SENT", "tribunal", "nota_1", "nota_2", "nota_3", "Observaciones"],
   },
+  presented: {
+    source: "students",
+    sheet: "asignacion alumno-profesor",
+    statusId: "presented-view-status",
+    tableId: "presented-view-table",
+    columns: ["e-mail alumno", "GRUPO", "alumno", "e-mail-profesor", "profesor", "e-mail profesor2", "profesor2", "Doctor", "tema", "EMAIL_SENT", "tribunal", "nota_1", "nota_2", "nota_3", "Observaciones"],
+    filterColumn: "tribunal",
+    filterValue: "SI",
+  },
 };
 
 const AVAILABILITY_SHEETS = ["Disponibilidad_1", "Disponibilidad_2", "Disponibilidad_3"];
@@ -1387,9 +1406,14 @@ async function loadDerivedView(viewName) {
   try {
     const result = await client.readSheet(spreadsheetId, view.sheet);
     if (viewRequests.get(viewName) !== requestNumber) return;
-    const projected = projectColumns(result, view.columns);
+    const filtered = view.filterColumn
+      ? filterRecordsByColumn(result, view.filterColumn, view.filterValue)
+      : result;
+    const projected = projectColumns(filtered, view.columns);
     renderDataTable(table, projected.headers, projected.records);
-    setViewStatus(status, `${view.sheet}: ${formatRecordCount(projected.records.length)}.`, "success");
+    setViewStatus(status, view.filterColumn
+      ? `${formatRecordCount(projected.records.length)} con «${view.filterColumn}» = «${view.filterValue}» (de ${result.records.length} TFMs).`
+      : `${view.sheet}: ${formatRecordCount(projected.records.length)}.`, "success");
   } catch (error) {
     if (viewRequests.get(viewName) !== requestNumber) return;
     table.replaceChildren(makePlaceholder("No se han podido cargar los datos."));
@@ -1489,6 +1513,17 @@ function projectColumns(result, requiredColumns) {
   return {
     headers: requiredColumns,
     records: result.records.map((record) => indexes.map((index) => record[index] ?? "")),
+  };
+}
+
+function filterRecordsByColumn(result, column, expectedValue) {
+  const index = result.headers.findIndex((header) => normalizeColumnName(header) === normalizeColumnName(column));
+  if (index < 0) throw new Error(`No se encontró la columna «${column}» en la hoja de TFMs.`);
+  return {
+    headers: result.headers,
+    records: result.records.filter((record) =>
+      String(record[index] ?? "").trim().toLocaleUpperCase("es") === expectedValue.toLocaleUpperCase("es")
+    ),
   };
 }
 
