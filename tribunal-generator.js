@@ -80,9 +80,15 @@
     return Boolean(person) && ![tfm[0], tfm[6], tfm[7], ...picked].some(other => email(other) === email(person)) &&
       slotFree(person, date, time, previous);
   }
-  const validPresident = validRole;
-  const validSecretary = validRole;
-  const validVocal = validRole;
+  function validPresident(person, tfm, picked, previous, date, time) {
+    return validRole(person, tfm, picked, previous, date, time);
+  }
+  function validSecretary(person, tfm, picked, previous, date, time) {
+    return validRole(person, tfm, picked, previous, date, time);
+  }
+  function validVocal(person, tfm, picked, previous, date, time) {
+    return validRole(person, tfm, picked, previous, date, time);
+  }
   function generate(tfms, configurationSheet, availabilitySheet) {
     const config = getConfiguration(configurationSheet);
     const dates = allowedDates(config), times = allowedTimes(config);
