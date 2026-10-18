@@ -112,6 +112,22 @@
       seen.add(address); return true;
     });
   }
+  function tutorRoles(result) {
+    const mailIndex = requiredIndex(result, "correo");
+    const roleIndex = requiredIndex(result, "ROL");
+    const roles = new Map();
+    for (const row of result.records) {
+      const address = email(row[mailIndex]);
+      if (!address) continue;
+      const parsed = String(row[roleIndex] ?? "").split(",").map(value => value.trim().toUpperCase()).filter(Boolean);
+      if (parsed.some(value => !["P", "S", "V"].includes(value))) {
+        throw new Error("ROL no válido para " + address + ": " + row[roleIndex]);
+      }
+      if (!roles.has(address)) roles.set(address, new Set());
+      for (const role of parsed) roles.get(address).add(role);
+    }
+    return roles;
+  }
   function slotFree(person, date, time, previous) {
     return !previous.some(row => row[1] === date && row[2] === time &&
       [row[0], row[3], row[4], row[5], row[6], row[7]].some(value => email(value) === email(person)));
@@ -131,11 +147,12 @@
   function validVocal(person, tfm, picked, previous, date, time) {
     return validRole(person, tfm, picked, previous, date, time);
   }
-  function generate(tfms, configurationSheet, availabilitySheet) {
+  function generate(tfms, configurationSheet, availabilitySheet, tutorsSheet) {
     const config = getConfiguration(configurationSheet);
     const dates = allowedDates(config), times = allowedTimes(config);
     const members = eligibleMembers(availabilitySheet);
     const { schedule } = availabilitySlots(availabilitySheet);
+    const roles = tutorRoles(tutorsSheet);
     if (members.length < 3) throw new Error("Se necesitan al menos tres correos distintos en la disponibilidad seleccionada.");
     const original = tfms.records.map(row => [...row]);
     const result = [];
@@ -151,8 +168,8 @@
         if (![row[0], row[6], row[7]].filter(Boolean).every(person => slotFree(person, date, time, result))) continue;
         const candidates = shuffle(members);
         const chosen = [];
-        for (const [position, validator] of [validPresident, validSecretary, validVocal].entries()) {
-          const candidate = candidates.find(person => availableAt(schedule, person, date, time) && !chosen.includes(person) && validator(person, row, chosen, result, date, time));
+        for (const [requiredRole, validator] of [["P", validPresident], ["S", validSecretary], ["V", validVocal]]) {
+          const candidate = candidates.find(person => roles.get(person)?.has(requiredRole) && availableAt(schedule, person, date, time) && !chosen.includes(person) && validator(person, row, chosen, result, date, time));
           if (!candidate) break;
           chosen.push(candidate);
           candidates.splice(candidates.indexOf(candidate), 1);
@@ -170,6 +187,6 @@
     }
     return { headers: tfms.headers, records: assigned, assigned: result.length, notices, availabilityCount: members.length };
   }
-  root.TribunalGenerator = { generate, getConfiguration, allowedDates, allowedTimes, eligibleMembers, availabilitySlots, availableAt,
+  root.TribunalGenerator = { generate, getConfiguration, allowedDates, allowedTimes, eligibleMembers, availabilitySlots, availableAt, tutorRoles,
     validDate, validTime, validPresident, validSecretary, validVocal, durationMinutes: DURATION };
 })(window);
