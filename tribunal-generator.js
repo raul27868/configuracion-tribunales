@@ -38,9 +38,12 @@
     return date;
   }
   function parseMinutes(value) {
-    const match = String(value).trim().match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
-    if (!match || +match[1] > 23 || +match[2] > 59) throw new Error("Hora no válida: " + value + ". Usa HH:MM.");
-    return +match[1] * 60 + +match[2];
+    const text = String(value).trim();
+    const match = text.match(/^(\d{1,2})(?::(\d{2})(?::\d{2})?)?$/);
+    if (!match || +match[1] > 23 || +(match[2] ?? 0) > 59) {
+      throw new Error("Hora no válida: " + value + ". Usa HH o HH:MM.");
+    }
+    return +match[1] * 60 + +(match[2] ?? 0);
   }
   function allowedDates(config) {
     const start = parseDate(config.startDate), end = parseDate(config.endDate);
