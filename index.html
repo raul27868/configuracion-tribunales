@@ -455,10 +455,16 @@ h1 {
   min-width: max-content;
 }
 
-.availability-tables {
+.availability-tables:not([hidden]) {
   display: grid;
   gap: 18px;
 }
+.availability-mode-tabs { display: flex; gap: 8px; margin: 12px 0; }
+.availability-mode-tabs button { padding: 9px 16px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.availability-mode-tabs button[aria-selected="true"] { background: #e8edff; font-weight: 700; }
+.availability-yes { background: #dcfce7; color: #166534; font-weight: 650; }
+.availability-no { color: #94a3b8; }
+.availability-legend { margin: 8px 0; color: var(--muted); font-size: 12px; }
 
 .availability-table-section {
   min-width: 0;
@@ -719,6 +725,7 @@ h1 {
 }
     </style>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="./tribunal-generator.js" defer></script>
   </head>
   <body>
     <header class="app-header">
@@ -730,7 +737,7 @@ h1 {
             <span class="brand-caption">Defensas de Trabajo Fin de Máster</span>
           </span>
         </a>
-        <span class="app-version" title="Versión de la aplicación">v1.4.0</span>
+        <span class="app-version" title="Versión de la aplicación">v1.5.0</span>
       </div>
       <nav class="app-tabs" role="tablist" aria-label="Secciones de la aplicación">
         <button
@@ -1051,8 +1058,9 @@ h1 {
         <div class="intro">
           <p class="eyebrow">Composición de tribunales</p>
           <h1>Tribunales</h1>
-          <p class="intro-copy">Un registro por TFM presentado (tribunal = SI). La fecha, hora y miembros del tribunal se asignarán más adelante.</p>
+          <p class="intro-copy">Un registro por TFM presentado (tribunal = SI). Generación provisional, sin guardar cambios en Google Sheets. Defensas de 60 minutos.</p>
         </div>
+        <p><button class="button" id="generate-tribunals" type="button">Generar asignación aleatoria</button></p>
         <p class="source-status" id="tribunals-view-status" role="status" aria-live="polite">Autoriza Google y configura la URL de Alumnos y entregas para cargar los tribunales.</p>
         <div class="table-scroll data-view-table" id="tribunals-view-table" tabindex="0" aria-label="Tabla de tribunales"></div>
       </section>
@@ -1063,7 +1071,12 @@ h1 {
           <p class="intro-copy">Se muestran, en tablas independientes, las pestañas de disponibilidad que existen en el documento.</p>
         </div>
         <p class="source-status" id="availability-view-status" role="status" aria-live="polite">Autoriza Google y configura la URL de Otros Datos para cargar estos datos.</p>
-        <div class="availability-tables" id="availability-view-tables"></div>
+        <div class="availability-mode-tabs" role="tablist" aria-label="Formato de disponibilidad">
+          <button type="button" class="source-tab" role="tab" id="availability-mode-table" aria-selected="true" aria-controls="availability-view-tables">Tabla</button>
+          <button type="button" class="source-tab" role="tab" id="availability-mode-visual" aria-selected="false" aria-controls="availability-view-visual">Visual</button>
+        </div>
+        <div class="availability-tables" role="tabpanel" id="availability-view-tables" aria-labelledby="availability-mode-table"></div>
+        <div class="availability-tables" role="tabpanel" id="availability-view-visual" aria-labelledby="availability-mode-visual" hidden></div>
       </section>
     </main>
     <script>
@@ -1281,6 +1294,8 @@ const DERIVED_VIEWS = {
 };
 
 const AVAILABILITY_SHEETS = ["Disponibilidad_1", "Disponibilidad_2", "Disponibilidad_3"];
+let tribunalBaseData = null;
+let tribunalGenerationRequest = 0;
 
 for (const name of ["students", "staff", "otherData"]) {
   const form = document.querySelector(`#${name}-form`);
@@ -1338,6 +1353,15 @@ elements.clientId.addEventListener("input", () => {
 elements.loadConfigurationButton.addEventListener("click", () => elements.configurationFile.click());
 elements.configurationFile.addEventListener("change", handleConfigurationFile);
 elements.downloadConfigurationButton.addEventListener("click", downloadConfiguration);
+document.getElementById("generate-tribunals").addEventListener("click", generateRandomTribunals);
+for (const [mode, other] of [["table", "visual"], ["visual", "table"]]) {
+  document.getElementById(`availability-mode-${mode}`).addEventListener("click", () => {
+    document.getElementById(`availability-mode-${mode}`).setAttribute("aria-selected", "true");
+    document.getElementById(`availability-mode-${other}`).setAttribute("aria-selected", "false");
+    document.getElementById(`availability-view-${mode === "table" ? "tables" : "visual"}`).hidden = false;
+    document.getElementById(`availability-view-${other === "table" ? "tables" : "visual"}`).hidden = true;
+  });
+}
 
 for (const [index, tab] of elements.appTabs.entries()) {
   tab.addEventListener("click", () => activateAppTab(tab));
@@ -1391,6 +1415,9 @@ function activateAppTab(activeTab) {
   }
 
   const viewName = activeTab.id.replace(/^tab-/, "");
+  if (viewName === "tribunals" && tribunalBaseData) {
+    renderDataTable(document.getElementById("tribunals-view-table"), tribunalBaseData.headers, tribunalBaseData.records);
+  }
   if (viewName === "configuration") return;
   if (viewName === "availability") {
     loadAvailabilityView();
@@ -1406,6 +1433,7 @@ async function loadDerivedView(viewName) {
   const table = document.getElementById(view.tableId);
   const requestNumber = (viewRequests.get(viewName) ?? 0) + 1;
   viewRequests.set(viewName, requestNumber);
+  if (viewName === "tribunals") { tribunalBaseData = null; tribunalGenerationRequest++; }
   table.replaceChildren(makePlaceholder("Cargando datos…"));
 
   if (!client.hasAccessToken) {
@@ -1432,6 +1460,7 @@ async function loadDerivedView(viewName) {
       ? mapTribunals(filtered)
       : projectColumns(filtered, view.columns);
     renderDataTable(table, projected.headers, projected.records);
+    if (viewName === "tribunals") tribunalBaseData = projected;
     setViewStatus(status, view.filterColumn
       ? `${formatRecordCount(projected.records.length)} con «${view.filterColumn}» = «${view.filterValue}» (de ${result.records.length} TFMs).`
       : `${view.sheet}: ${formatRecordCount(projected.records.length)}.`, "success");
@@ -1445,14 +1474,64 @@ async function loadDerivedView(viewName) {
   }
 }
 
+
+async function generateRandomTribunals() {
+  const button = document.getElementById("generate-tribunals");
+  const status = document.getElementById("tribunals-view-status");
+  const table = document.getElementById("tribunals-view-table");
+  const requestNumber = ++tribunalGenerationRequest;
+  if (!tribunalBaseData) {
+    setViewStatus(status, "Primero carga la lista de TFMs presentados abriendo la pestaña Tribunales.", "error");
+    return;
+  }
+  if (!client.hasAccessToken) {
+    setViewStatus(status, "Autoriza primero Google en Configuración.", "error");
+    return;
+  }
+  let studentsId, otherId;
+  try {
+    studentsId = client.parseSpreadsheetId(sources.get("students").input.value.trim());
+    otherId = client.parseSpreadsheetId(sources.get("otherData").input.value.trim());
+  } catch (error) {
+    setViewStatus(status, "Configura las fuentes «Alumnos y entregas» y «Otros Datos»: " + error.message, "error");
+    return;
+  }
+  button.disabled = true;
+  setViewStatus(status, "Cargando configuración y la última pestaña de disponibilidad…");
+  try {
+    const [configuration, sheets] = await Promise.all([
+      client.readSheet(studentsId, "Configuración"),
+      client.listSheets(otherId),
+    ]);
+    if (requestNumber !== tribunalGenerationRequest) return;
+    const available = sheets.filter(sheet => /^Disponibilidad_[1-3]$/.test(sheet.title))
+      .sort((a, b) => Number(b.title.split("_")[1]) - Number(a.title.split("_")[1]));
+    if (!available.length) throw new Error("No se encontró ninguna pestaña Disponibilidad_1, Disponibilidad_2 o Disponibilidad_3.");
+    const selection = available[0].title;
+    const availability = await client.readSheet(otherId, selection);
+    if (requestNumber !== tribunalGenerationRequest) return;
+    const solution = window.TribunalGenerator.generate(tribunalBaseData, configuration, availability);
+    renderDataTable(table, solution.headers, solution.records);
+    setViewStatus(status, `Asignación provisional: ${solution.assigned} de ${solution.records.length} tribunales completos. Fuente: ${selection}. Defensas de 60 minutos.` +
+      (solution.notices.length ? ` Sin asignar: ${solution.notices.length}. ${solution.notices.slice(0, 3).join(" ")}` : ""), solution.notices.length ? "error" : "success");
+  } catch (error) {
+    if (requestNumber !== tribunalGenerationRequest) return;
+    setViewStatus(status, "No se generó ninguna asignación: " + error.message, "error");
+  } finally {
+    if (requestNumber === tribunalGenerationRequest) button.disabled = false;
+  }
+}
+
 async function loadAvailabilityView() {
   const viewName = "availability";
   const source = sources.get("otherData");
   const status = document.getElementById("availability-view-status");
   const tables = document.getElementById("availability-view-tables");
+  const visual = document.getElementById("availability-view-visual");
   const requestNumber = (viewRequests.get(viewName) ?? 0) + 1;
   viewRequests.set(viewName, requestNumber);
   tables.replaceChildren(makePlaceholder("Cargando pestañas de disponibilidad…"));
+  visual.replaceChildren(makePlaceholder("Cargando datos para la vista visual…"));
 
   if (!client.hasAccessToken) {
     setViewStatus(status, "Autoriza primero el acceso de solo lectura con Google.", "error");
@@ -1481,6 +1560,7 @@ async function loadAvailabilityView() {
     }
 
     tables.replaceChildren();
+    visual.replaceChildren();
     const results = await Promise.all(availableSheets.map(async (title) => {
       try {
         return { title, result: await client.readSheet(spreadsheetId, title) };
@@ -1495,8 +1575,10 @@ async function loadAvailabilityView() {
       if (entry.error) {
         failedSheets += 1;
         renderAvailabilitySection(tables, entry.title, null, entry.error.message);
+        renderAvailabilitySection(visual, entry.title, null, entry.error.message);
       } else {
         renderAvailabilitySection(tables, entry.title, entry.result);
+        renderAvailabilityVisual(visual, entry.title, entry.result);
       }
     }
     if (failedSheets && !client.hasAccessToken) {
@@ -1593,6 +1675,55 @@ function renderDataTable(container, headers, records) {
   }
   table.append(head, body);
   container.replaceChildren(table);
+}
+
+function renderAvailabilityVisual(container, title, result) {
+  const section = document.createElement("section");
+  section.className = "availability-table-section";
+  const heading = document.createElement("h2");
+  heading.textContent = title;
+  section.append(heading);
+  try {
+    const { schedule, dates } = window.TribunalGenerator.availabilitySlots(result);
+    const emails = [...schedule.keys()];
+    const caption = document.createElement("p");
+    caption.className = "availability-legend";
+    caption.textContent = "Cada celda muestra las franjas de 60 minutos disponibles. — indica ausencia de disponibilidad.";
+    section.append(caption);
+    const wrapper = document.createElement("div");
+    wrapper.className = "table-scroll";
+    const table = document.createElement("table");
+    table.className = "data-table";
+    const thead = document.createElement("thead");
+    const header = document.createElement("tr");
+    for (const name of ["Correo Electronico", ...dates.map(date => date.split("-").reverse().join("/"))]) {
+      const th = document.createElement("th");
+      th.textContent = name;
+      header.append(th);
+    }
+    thead.append(header);
+    const tbody = document.createElement("tbody");
+    for (const address of emails) {
+      const tr = document.createElement("tr");
+      const mail = document.createElement("td");
+      mail.textContent = address;
+      tr.append(mail);
+      for (const date of dates) {
+        const td = document.createElement("td");
+        const slots = [...(schedule.get(address).get(date) ?? [])].sort();
+        td.textContent = slots.length ? slots.join(" · ") : "—";
+        td.className = slots.length ? "availability-yes" : "availability-no";
+        tr.append(td);
+      }
+      tbody.append(tr);
+    }
+    table.append(thead, tbody);
+    wrapper.append(table);
+    section.append(wrapper);
+  } catch (error) {
+    section.append(makePlaceholder("No se pudo interpretar la disponibilidad: " + error.message));
+  }
+  container.append(section);
 }
 
 function renderAvailabilitySection(container, title, result, errorMessage = "") {
