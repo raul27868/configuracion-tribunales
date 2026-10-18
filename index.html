@@ -455,10 +455,16 @@ h1 {
   min-width: max-content;
 }
 
-.availability-tables {
+.availability-tables:not([hidden]) {
   display: grid;
   gap: 18px;
 }
+.availability-mode-tabs { display: flex; gap: 8px; margin: 12px 0; }
+.availability-mode-tabs button { padding: 9px 16px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.availability-mode-tabs button[aria-selected="true"] { background: #e8edff; font-weight: 700; }
+.availability-yes { background: #dcfce7; color: #166534; font-weight: 650; }
+.availability-no { color: #94a3b8; }
+.availability-legend { margin: 8px 0; color: var(--muted); font-size: 12px; }
 
 .availability-table-section {
   min-width: 0;
@@ -1065,7 +1071,12 @@ h1 {
           <p class="intro-copy">Se muestran, en tablas independientes, las pestañas de disponibilidad que existen en el documento.</p>
         </div>
         <p class="source-status" id="availability-view-status" role="status" aria-live="polite">Autoriza Google y configura la URL de Otros Datos para cargar estos datos.</p>
-        <div class="availability-tables" id="availability-view-tables"></div>
+        <div class="availability-mode-tabs" role="tablist" aria-label="Formato de disponibilidad">
+          <button type="button" class="source-tab" role="tab" id="availability-mode-table" aria-selected="true" aria-controls="availability-view-tables">Tabla</button>
+          <button type="button" class="source-tab" role="tab" id="availability-mode-visual" aria-selected="false" aria-controls="availability-view-visual">Visual</button>
+        </div>
+        <div class="availability-tables" role="tabpanel" id="availability-view-tables" aria-labelledby="availability-mode-table"></div>
+        <div class="availability-tables" role="tabpanel" id="availability-view-visual" aria-labelledby="availability-mode-visual" hidden></div>
       </section>
     </main>
     <script>
@@ -1343,6 +1354,14 @@ elements.loadConfigurationButton.addEventListener("click", () => elements.config
 elements.configurationFile.addEventListener("change", handleConfigurationFile);
 elements.downloadConfigurationButton.addEventListener("click", downloadConfiguration);
 document.getElementById("generate-tribunals").addEventListener("click", generateRandomTribunals);
+for (const [mode, other] of [["table", "visual"], ["visual", "table"]]) {
+  document.getElementById(`availability-mode-${mode}`).addEventListener("click", () => {
+    document.getElementById(`availability-mode-${mode}`).setAttribute("aria-selected", "true");
+    document.getElementById(`availability-mode-${other}`).setAttribute("aria-selected", "false");
+    document.getElementById(`availability-view-${mode === "table" ? "tables" : "visual"}`).hidden = false;
+    document.getElementById(`availability-view-${other === "table" ? "tables" : "visual"}`).hidden = true;
+  });
+}
 
 for (const [index, tab] of elements.appTabs.entries()) {
   tab.addEventListener("click", () => activateAppTab(tab));
@@ -1508,9 +1527,11 @@ async function loadAvailabilityView() {
   const source = sources.get("otherData");
   const status = document.getElementById("availability-view-status");
   const tables = document.getElementById("availability-view-tables");
+  const visual = document.getElementById("availability-view-visual");
   const requestNumber = (viewRequests.get(viewName) ?? 0) + 1;
   viewRequests.set(viewName, requestNumber);
   tables.replaceChildren(makePlaceholder("Cargando pestañas de disponibilidad…"));
+  visual.replaceChildren(makePlaceholder("Cargando datos para la vista visual…"));
 
   if (!client.hasAccessToken) {
     setViewStatus(status, "Autoriza primero el acceso de solo lectura con Google.", "error");
@@ -1539,6 +1560,7 @@ async function loadAvailabilityView() {
     }
 
     tables.replaceChildren();
+    visual.replaceChildren();
     const results = await Promise.all(availableSheets.map(async (title) => {
       try {
         return { title, result: await client.readSheet(spreadsheetId, title) };
@@ -1553,8 +1575,10 @@ async function loadAvailabilityView() {
       if (entry.error) {
         failedSheets += 1;
         renderAvailabilitySection(tables, entry.title, null, entry.error.message);
+        renderAvailabilitySection(visual, entry.title, null, entry.error.message);
       } else {
         renderAvailabilitySection(tables, entry.title, entry.result);
+        renderAvailabilityVisual(visual, entry.title, entry.result);
       }
     }
     if (failedSheets && !client.hasAccessToken) {
@@ -1651,6 +1675,55 @@ function renderDataTable(container, headers, records) {
   }
   table.append(head, body);
   container.replaceChildren(table);
+}
+
+function renderAvailabilityVisual(container, title, result) {
+  const section = document.createElement("section");
+  section.className = "availability-table-section";
+  const heading = document.createElement("h2");
+  heading.textContent = title;
+  section.append(heading);
+  try {
+    const { schedule, dates } = window.TribunalGenerator.availabilitySlots(result);
+    const emails = [...schedule.keys()];
+    const caption = document.createElement("p");
+    caption.className = "availability-legend";
+    caption.textContent = "Cada celda muestra las franjas de 60 minutos disponibles. — indica ausencia de disponibilidad.";
+    section.append(caption);
+    const wrapper = document.createElement("div");
+    wrapper.className = "table-scroll";
+    const table = document.createElement("table");
+    table.className = "data-table";
+    const thead = document.createElement("thead");
+    const header = document.createElement("tr");
+    for (const name of ["Correo Electronico", ...dates.map(date => date.split("-").reverse().join("/"))]) {
+      const th = document.createElement("th");
+      th.textContent = name;
+      header.append(th);
+    }
+    thead.append(header);
+    const tbody = document.createElement("tbody");
+    for (const address of emails) {
+      const tr = document.createElement("tr");
+      const mail = document.createElement("td");
+      mail.textContent = address;
+      tr.append(mail);
+      for (const date of dates) {
+        const td = document.createElement("td");
+        const slots = [...(schedule.get(address).get(date) ?? [])].sort();
+        td.textContent = slots.length ? slots.join(" · ") : "—";
+        td.className = slots.length ? "availability-yes" : "availability-no";
+        tr.append(td);
+      }
+      tbody.append(tr);
+    }
+    table.append(thead, tbody);
+    wrapper.append(table);
+    section.append(wrapper);
+  } catch (error) {
+    section.append(makePlaceholder("No se pudo interpretar la disponibilidad: " + error.message));
+  }
+  container.append(section);
 }
 
 function renderAvailabilitySection(container, title, result, errorMessage = "") {
