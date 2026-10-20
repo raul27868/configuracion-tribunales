@@ -1,0 +1,74 @@
+{
+  "slots": [
+    {
+      "id": "2026-10-20_15",
+      "date": "2026-10-20",
+      "time": "15:00"
+    },
+    {
+      "id": "2026-10-20_16",
+      "date": "2026-10-20",
+      "time": "16:00"
+    }
+  ],
+  "defenses": [
+    {
+      "id": "tfm-001",
+      "student": "alumno1@ejemplo.es",
+      "tutors": [
+        "tutor1@ejemplo.es"
+      ]
+    },
+    {
+      "id": "tfm-002",
+      "student": "alumno2@ejemplo.es",
+      "tutors": [
+        "tutor2@ejemplo.es"
+      ]
+    }
+  ],
+  "teachers": [
+    {
+      "email": "p1@ejemplo.es",
+      "roles": [
+        "P"
+      ],
+      "available_slots": [
+        "2026-10-20_15",
+        "2026-10-20_16"
+      ]
+    },
+    {
+      "email": "s1@ejemplo.es",
+      "roles": [
+        "S"
+      ],
+      "available_slots": [
+        "2026-10-20_15",
+        "2026-10-20_16"
+      ]
+    },
+    {
+      "email": "v1@ejemplo.es",
+      "roles": [
+        "V"
+      ],
+      "available_slots": [
+        "2026-10-20_15",
+        "2026-10-20_16"
+      ]
+    },
+    {
+      "email": "tutor1@ejemplo.es",
+      "roles": [
+        "P",
+        "S",
+        "V"
+      ],
+      "available_slots": [
+        "2026-10-20_15",
+        "2026-10-20_16"
+      ]
+    }
+  ]
+}
