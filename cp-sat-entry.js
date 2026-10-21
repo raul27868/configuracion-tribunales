@@ -1,4 +1,4 @@
-import { CpModel, CpSolver, weightedSum } from "or-tools-wasm/cp-sat";
+import { CpModel, CpSolver, sum, weightedSum } from "or-tools-wasm/cp-sat";
 const WILDCARD = "xxxx@xxxxxx";
 const ROLES = ["P", "S", "V"];
 const key = (...parts) => parts.join("|");
@@ -52,7 +52,7 @@ async function solve(tfms, configuration, availability, tutors) {
         choices.set(key(a,t,role,WILDCARD),wildcard);
         vars.push(wildcard);
         vacancies[role].push(wildcard);
-        model.addEquality(model.sum(vars),y);
+        model.addEquality(sum(vars),y);
       }
     }
     model.addExactlyOne(possibleSlots);
