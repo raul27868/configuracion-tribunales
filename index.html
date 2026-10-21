@@ -737,6 +737,7 @@ h1 {
     </style>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="./tribunal-generator.js" defer></script>
+    <script src="./tribunal-backtracking.js" defer></script>
   </head>
   <body>
     <header class="app-header">
@@ -1071,7 +1072,7 @@ h1 {
           <h1>Tribunales</h1>
           <p class="intro-copy">Un registro por TFM presentado (tribunal = SI). Generación provisional, sin guardar cambios en Google Sheets. Defensas de 60 minutos.</p>
         </div>
-        <p><button class="button" id="generate-tribunals" type="button">Generar asignación aleatoria</button></p>
+        <p><button class="button" id="generate-tribunals" type="button">Generar asignación aleatoria</button> <button class="button" id="optimize-tribunals" type="button">Optimizar tribunales</button></p>
         <p class="source-status" id="tribunals-view-status" role="status" aria-live="polite">Autoriza Google y configura la URL de Alumnos y entregas para cargar los tribunales.</p>
         <div class="table-scroll data-view-table" id="tribunals-view-table" tabindex="0" aria-label="Tabla de tribunales"></div>
       </section>
@@ -1365,6 +1366,7 @@ elements.loadConfigurationButton.addEventListener("click", () => elements.config
 elements.configurationFile.addEventListener("change", handleConfigurationFile);
 elements.downloadConfigurationButton.addEventListener("click", downloadConfiguration);
 document.getElementById("generate-tribunals").addEventListener("click", generateRandomTribunals);
+document.getElementById("optimize-tribunals").addEventListener("click", optimizeTribunals);
 for (const [mode, other] of [["table", "visual"], ["visual", "table"]]) {
   document.getElementById(`availability-mode-${mode}`).addEventListener("click", () => {
     document.getElementById(`availability-mode-${mode}`).setAttribute("aria-selected", "true");
@@ -1532,6 +1534,48 @@ async function generateRandomTribunals() {
     setViewStatus(status, "No se generó ninguna asignación: " + error.message, "error");
   } finally {
     if (requestNumber === tribunalGenerationRequest) button.disabled = false;
+  }
+}
+
+async function optimizeTribunals() {
+  const button=document.getElementById("optimize-tribunals");
+  const status=document.getElementById("tribunals-view-status");
+  const table=document.getElementById("tribunals-view-table");
+  const request=++tribunalGenerationRequest;
+  if(!tribunalBaseData || !client.hasAccessToken){
+    setViewStatus(status,"Autoriza Google y carga la pestaña Tribunales antes de optimizar.","error");
+    return;
+  }
+  button.disabled=true;
+  try{
+    const studentsId=client.parseSpreadsheetId(sources.get("students").input.value.trim());
+    const otherId=client.parseSpreadsheetId(sources.get("otherData").input.value.trim());
+    const staffId=client.parseSpreadsheetId(sources.get("staff").input.value.trim());
+    setViewStatus(status,"Cargando Configuración, Tutores y última Disponibilidad…");
+    const [configuration,sheets,tutors]=await Promise.all([
+      client.readSheet(studentsId,"Configuración"),client.listSheets(otherId),client.readSheet(staffId,"Tutores")
+    ]);
+    if(request!==tribunalGenerationRequest)return;
+    const latest=sheets.filter(sheet=>/^Disponibilidad_[1-3]$/.test(sheet.title))
+      .sort((a,b)=>Number(b.title.split("_")[1])-Number(a.title.split("_")[1]))[0];
+    if(!latest)throw Error("No se encontró ninguna pestaña Disponibilidad_1, 2 o 3.");
+    const availability=await client.readSheet(otherId,latest.title);
+    if(request!==tribunalGenerationRequest)return;
+    setViewStatus(status,"Optimizando con backtracking y propagación (máximo 10 segundos)…");
+    const solution=await window.TribunalBacktracking.optimize(tribunalBaseData,configuration,availability,tutors,10000);
+    if(request!==tribunalGenerationRequest)return;
+    renderDataTable(table,solution.headers,solution.records);
+    const v=solution.vacancies;
+    const complete=solution.records.length-Math.min(solution.records.length,v.P+v.S+v.V);
+    const message=`Backtracking: ${solution.optimal?"óptimo demostrado":"mejor solución encontrada (sin garantía de óptimo)"}. `+
+      `Tribunales completos: ${complete}/${solution.records.length}. `+
+      `Vacantes: P=${v.P}, S=${v.S}, V=${v.V}. `+
+      `Tiempo: ${solution.elapsedMs} ms; nodos: ${solution.nodes}. Fuente: ${latest.title}.`;
+    setViewStatus(status,message,v.P||v.S||v.V?"error":"success");
+  }catch(error){
+    if(request===tribunalGenerationRequest)setViewStatus(status,"No se pudo optimizar: "+error.message,"error");
+  }finally{
+    if(request===tribunalGenerationRequest)button.disabled=false;
   }
 }
 
