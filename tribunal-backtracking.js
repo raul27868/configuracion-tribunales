@@ -18,7 +18,7 @@
     if(!slots.length)throw Error("No existen franjas válidas en Configuración.");
     return {students:tfms.records.map(row=>email(row[0])),slots,options};
   }
-  function optimize(tfms,configuration,availability,tutors,timeLimitMs=10000){
+  function optimize(tfms,configuration,availability,tutors,timeLimitMs=10000,onProgress=()=>{}){
     const data=build(tfms,configuration,availability,tutors);
     return new Promise((resolve,reject)=>{
       const worker=new Worker("./tribunal-backtracking-worker.js");
@@ -30,6 +30,7 @@
       };
       worker.onerror=event=>finish(new Error("Error en Web Worker: "+event.message));
       worker.onmessage=({data:out})=>{
+        if(out.type==='progress') { try { onProgress(out); } catch(error) { console.warn('Error notificando progreso:',error); } return; }
         try{
           if(!Array.isArray(out.rows)||out.rows.length!==tfms.records.length)throw Error("Resultado incompleto.");
           const used=new Set();
