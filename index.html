@@ -1072,7 +1072,14 @@ h1 {
           <h1>Tribunales</h1>
           <p class="intro-copy">Un registro por TFM presentado (tribunal = SI). Generación provisional, sin guardar cambios en Google Sheets. Defensas de 60 minutos.</p>
         </div>
-        <p><button class="button" id="generate-tribunals" type="button">Generar asignación aleatoria</button> <button class="button" id="optimize-tribunals" type="button">Optimizar tribunales</button></p>
+        <p><button class="button" id="generate-tribunals" type="button">Generar asignación aleatoria</button> <button class="button" id="optimize-tribunals" type="button">Optimizar tribunales</button>
+          <label for="optimization-seconds">Tiempo máximo:</label>
+          <select id="optimization-seconds" aria-label="Tiempo máximo de optimización">
+            <option value="10">10 segundos</option><option value="30">30 segundos</option>
+            <option value="60" selected>1 minuto</option><option value="120">2 minutos</option>
+            <option value="300">5 minutos</option><option value="600">10 minutos</option>
+          </select></p>
+        <div id="optimization-progress" role="status" aria-live="off" style="display:none; padding:10px 0; font-size:0.9rem;"></div>
         <p class="source-status" id="tribunals-view-status" role="status" aria-live="polite">Autoriza Google y configura la URL de Alumnos y entregas para cargar los tribunales.</p>
         <div class="table-scroll data-view-table" id="tribunals-view-table" tabindex="0" aria-label="Tabla de tribunales"></div>
       </section>
@@ -1542,6 +1549,11 @@ async function optimizeTribunals() {
   const status=document.getElementById("tribunals-view-status");
   const table=document.getElementById("tribunals-view-table");
   const request=++tribunalGenerationRequest;
+  const progress=document.getElementById("optimization-progress");
+  const seconds=Number(document.getElementById("optimization-seconds").value);
+  progress.style.display="block";
+  progress.textContent="Preparando optimización…";
+  console.info("[Tribunales] Inicio de optimización:",{alumnos:tribunalBaseData?.records.length,limiteSegundos:seconds});
   if(!tribunalBaseData || !client.hasAccessToken){
     setViewStatus(status,"Autoriza Google y carga la pestaña Tribunales antes de optimizar.","error");
     return;
@@ -1561,10 +1573,22 @@ async function optimizeTribunals() {
     if(!latest)throw Error("No se encontró ninguna pestaña Disponibilidad_1, 2 o 3.");
     const availability=await client.readSheet(otherId,latest.title);
     if(request!==tribunalGenerationRequest)return;
-    setViewStatus(status,"Optimizando con backtracking y propagación (máximo 10 segundos)…");
-    const solution=await window.TribunalBacktracking.optimize(tribunalBaseData,configuration,availability,tutors,10000);
+    setViewStatus(status,`Optimizando con backtracking (máximo ${seconds} segundos)…`);
+    let lastLogged=0;
+    const solution=await window.TribunalBacktracking.optimize(tribunalBaseData,configuration,availability,tutors,seconds*1000,update=>{
+      if(request!==tribunalGenerationRequest)return;
+      const v=update.vacancies;
+      progress.textContent=`Búsqueda: ${(update.elapsedMs/1000).toFixed(1)} / ${seconds} s · ${update.nodes.toLocaleString("es-ES")} nodos · `+
+        `Mejor asignación: P=${v.P}, S=${v.S}, V=${v.V} pendientes · Profundidad ${update.depth}/${update.students}`;
+      if(update.reason==="improvement" || update.elapsedMs-lastLogged>=5000){
+        console.info("[Tribunales] Progreso:",update);
+        lastLogged=update.elapsedMs;
+      }
+    });
     if(request!==tribunalGenerationRequest)return;
     renderDataTable(table,solution.headers,solution.records);
+    progress.textContent="Búsqueda finalizada y resultado verificado.";
+    console.info("[Tribunales] Resultado:",{vacantes:solution.vacancies,nodos:solution.nodes,tiempoMs:solution.elapsedMs,optimo:solution.optimal});
     const v=solution.vacancies;
     const complete=solution.records.filter(row=>[row[3],row[4],row[5]].every(person=>person!=="xxxx@xxxxxx")).length;
     const message=`Backtracking: ${solution.optimal?"óptimo demostrado":"mejor solución encontrada (sin garantía de óptimo)"}. `+
@@ -1573,7 +1597,7 @@ async function optimizeTribunals() {
       `Tiempo: ${solution.elapsedMs} ms; nodos: ${solution.nodes}. Fuente: ${latest.title}.`;
     setViewStatus(status,message,v.P||v.S||v.V?"error":"success");
   }catch(error){
-    if(request===tribunalGenerationRequest)setViewStatus(status,"No se pudo optimizar: "+error.message,"error");
+    if(request===tribunalGenerationRequest){progress.textContent="La búsqueda no pudo completarse.";setViewStatus(status,"No se pudo optimizar: "+error.message,"error");console.error("[Tribunales] Error:",error);}
   }finally{
     if(request===tribunalGenerationRequest)button.disabled=false;
   }
