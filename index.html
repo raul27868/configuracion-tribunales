@@ -1566,7 +1566,7 @@ async function optimizeTribunals() {
     if(request!==tribunalGenerationRequest)return;
     renderDataTable(table,solution.headers,solution.records);
     const v=solution.vacancies;
-    const complete=solution.records.length-Math.min(solution.records.length,v.P+v.S+v.V);
+    const complete=solution.records.filter(row=>[row[3],row[4],row[5]].every(person=>person!=="xxxx@xxxxxx")).length;
     const message=`Backtracking: ${solution.optimal?"óptimo demostrado":"mejor solución encontrada (sin garantía de óptimo)"}. `+
       `Tribunales completos: ${complete}/${solution.records.length}. `+
       `Vacantes: P=${v.P}, S=${v.S}, V=${v.V}. `+
