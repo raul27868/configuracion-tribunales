@@ -19,7 +19,10 @@
     const permittedSlots=tfms.records.map((row,i)=>{
       const locked=lockedRows.get(email(row[0]));
       if(!locked)return slots.map((_,t)=>t);
-      const date=String(locked[1]).trim(),time=String(locked[2]).trim();
+      const originalDate=String(locked[1]).trim();
+      const dateMatch=originalDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      const date=dateMatch?dateMatch[3]+"-"+dateMatch[2].padStart(2,"0")+"-"+dateMatch[1].padStart(2,"0"):originalDate;
+      const time=String(locked[2]).trim();
       const normalizedTime=/^\d{1,2}:\d{2}$/.test(time)?time.padStart(5,"0"):time;
       const found=slots.findIndex(slot=>slot.date===date && slot.time===normalizedTime);
       if(found<0)throw Error("Fecha u hora bloqueada fuera de Configuración para "+row[0]+": "+date+" "+time);
