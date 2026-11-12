@@ -4,7 +4,7 @@ const WILDCARD = "xxxx@xxxxxx";
 const ROLES = ["P", "S", "V"];
 const compare = (a,b) => a[0]-b[0] || a[1]-b[1] || a[2]-b[2];
 self.onmessage = ({data}) => {
-  const {students,slots,options,timeLimitMs=10000} = data;
+  const {students,slots,options,permittedSlots,timeLimitMs=10000} = data;
   const started=Date.now(), limit=Math.min(Math.max(timeLimitMs,100),600000);
   const n=students.length, occupied=new Set(), current=new Array(n), counts=[0,0,0];
   let best=null, bestCounts=[n+1,n+1,n+1], nodes=0, complete=true, lastProgress=started, currentDepth=0;
@@ -12,7 +12,7 @@ self.onmessage = ({data}) => {
     const score=i=>options[i].reduce((sum,slot)=>sum+slot.reduce((s,people)=>s+people.length,0),0);
     return score(a)-score(b);
   });
-  const slotOrder=order.map(i=>slots.map((_,t)=>t).sort((a,b)=>{
+  const slotOrder=order.map(i=>permittedSlots[i].slice().sort((a,b)=>{
     const quality=t=>options[i][t].reduce((s,people)=>s+Math.min(people.length,3),0);
     return quality(b)-quality(a);
   }));
@@ -69,7 +69,7 @@ self.onmessage = ({data}) => {
     }
   }
   // Asignación provisional completa y válida incluso si no hay profesores.
-  best=students.map(()=>[0,WILDCARD,WILDCARD,WILDCARD]);
+  best=students.map((_,i)=>[permittedSlots[i][0],WILDCARD,WILDCARD,WILDCARD]);
   bestCounts=[n,n,n];
   if(n)dfs(0);
   // Mejorar la solución provisional puede requerir explorar, y la primera solución
