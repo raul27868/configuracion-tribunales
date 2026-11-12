@@ -2,7 +2,7 @@
 (function(root){
   "use strict";
   const WILDCARD="xxxx@xxxxxx", ROLES=["P","S","V"];
-  function build(tfms,configuration,availability,tutors){
+  function build(tfms,configuration,availability,tutors,lockedRows=new Map()){
     const helper=root.TribunalGenerator;
     const config=helper.getConfiguration(configuration);
     const slots=helper.allowedDates(config).flatMap(date=>helper.allowedTimes(config).map(time=>({date,time})));
@@ -16,10 +16,19 @@
         helper.availableAt(schedule,person,date,time)));
     }));
     if(!slots.length)throw Error("No existen franjas válidas en Configuración.");
-    return {students:tfms.records.map(row=>email(row[0])),slots,options};
+    const permittedSlots=tfms.records.map((row,i)=>{
+      const locked=lockedRows.get(email(row[0]));
+      if(!locked)return slots.map((_,t)=>t);
+      const date=String(locked[1]).trim(),time=String(locked[2]).trim();
+      const normalizedTime=/^\d{1,2}:\d{2}$/.test(time)?time.padStart(5,"0"):time;
+      const found=slots.findIndex(slot=>slot.date===date && slot.time===normalizedTime);
+      if(found<0)throw Error("Fecha u hora bloqueada fuera de Configuración para "+row[0]+": "+date+" "+time);
+      return [found];
+    });
+    return {students:tfms.records.map(row=>email(row[0])),slots,options,permittedSlots};
   }
-  function optimize(tfms,configuration,availability,tutors,timeLimitMs=10000,onProgress=()=>{}){
-    const data=build(tfms,configuration,availability,tutors);
+  function optimize(tfms,configuration,availability,tutors,timeLimitMs=10000,onProgress=()=>{},lockedRows=new Map()){
+    const data=build(tfms,configuration,availability,tutors,lockedRows);
     return new Promise((resolve,reject)=>{
       const worker=new Worker("./tribunal-backtracking-worker.js");
       let finished=false;
@@ -36,7 +45,7 @@
           const used=new Set();
           const rows=out.rows.map((choice,i)=>{
             const [t,...assigned]=choice;
-            const slot=data.slots[t];if(!slot||assigned.length!==3)throw Error("Franja o composición inválida.");
+            const slot=data.slots[t];if(!slot || !data.permittedSlots[i].includes(t) || assigned.length!==3)throw Error("Franja o composición inválida.");
             const real=assigned.filter(p=>p!==WILDCARD);
             if(new Set(real).size!==real.length)throw Error("Profesor duplicado dentro del tribunal.");
             assigned.forEach((person,r)=>{
