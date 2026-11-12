@@ -23,7 +23,9 @@
       const dateMatch=originalDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
       const date=dateMatch?dateMatch[3]+"-"+dateMatch[2].padStart(2,"0")+"-"+dateMatch[1].padStart(2,"0"):originalDate;
       const time=String(locked[2]).trim();
-      const normalizedTime=/^\d{1,2}:\d{2}$/.test(time)?time.padStart(5,"0"):time;
+      const hourMatch=time.match(/^(\d{1,2})(?::(\d{2}))?$/);
+      if(!hourMatch || Number(hourMatch[1])>23 || Number(hourMatch[2]??0)>59)throw Error("Hora bloqueada no válida para "+row[0]+": "+time);
+      const normalizedTime=hourMatch[1].padStart(2,"0")+":"+(hourMatch[2]??"00");
       const found=slots.findIndex(slot=>slot.date===date && slot.time===normalizedTime);
       if(found<0)throw Error("Fecha u hora bloqueada fuera de Configuración para "+row[0]+": "+date+" "+time);
       return [found];
