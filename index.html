@@ -1582,6 +1582,23 @@ function downloadTribunalsCSV(){
   window.TribunalCSV.download(tribunalCurrentRecords);
 }
 
+function sortTribunalsBySchedule(records) {
+  const dateKey = value => {
+    const text = String(value ?? "").trim();
+    const match = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    return match ? match[3] + "-" + match[2].padStart(2, "0") + "-" + match[1].padStart(2, "0") : text;
+  };
+  const timeKey = value => {
+    const match = String(value ?? "").trim().match(/^(\d{1,2})(?::(\d{2}))?$/);
+    return match ? Number(match[1]) * 60 + Number(match[2] ?? 0) : Number.POSITIVE_INFINITY;
+  };
+  return [...records].sort((a, b) =>
+    dateKey(a[1]).localeCompare(dateKey(b[1])) ||
+    timeKey(a[2]) - timeKey(b[2]) ||
+    String(a[0]).localeCompare(String(b[0]), "es")
+  );
+}
+
 async function optimizeTribunals() {
   const button=document.getElementById("optimize-tribunals");
   const status=document.getElementById("tribunals-view-status");
@@ -1634,8 +1651,8 @@ async function optimizeTribunals() {
       }
     },locked);
     if(request!==tribunalGenerationRequest)return;
-    tribunalCurrentRecords=solution.records.map(row=>[...row]);
-    renderDataTable(table,solution.headers,solution.records);
+    tribunalCurrentRecords=sortTribunalsBySchedule(solution.records);
+    renderDataTable(table,solution.headers,tribunalCurrentRecords);
     progress.textContent="Búsqueda finalizada y resultado verificado.";
     console.info("[Tribunales] Resultado:",{vacantes:solution.vacancies,nodos:solution.nodes,tiempoMs:solution.elapsedMs,optimo:solution.optimal});
     const v=solution.vacancies;
