@@ -59,7 +59,7 @@
   function allowedTimes(config) {
     const start = parseMinutes(config.startTime), end = parseMinutes(config.endTime);
     const times = [];
-    for (let min = start; min + DURATION <= end; min += DURATION) {
+    for (let min = start; min <= end; min += DURATION) {
       times.push(String(Math.floor(min / 60)).padStart(2, "0") + ":" + String(min % 60).padStart(2, "0"));
     }
     if (!times.length) throw new Error("El intervalo horario no permite defensas completas de 60 minutos.");
