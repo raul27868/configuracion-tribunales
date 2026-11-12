@@ -6,7 +6,7 @@ const norm=x=>String(x??"").trim().toLowerCase();
 function parseCSV(text){
   text=String(text).replace(/^\uFEFF/,"");
   const first=text.split(/\r?\n/,1)[0];
-  const delimiter=(first.match(/;/g)||[]).length>(first.match(/,/g)||[]).length?";":",";
+  const delimiter=first.includes("\t")?"\t":(first.match(/;/g)||[]).length>(first.match(/,/g)||[]).length?";":",";
   const rows=[];let row=[],value="",quoted=false;
   for(let i=0;i<text.length;i++){
     const c=text[i];
