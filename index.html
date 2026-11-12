@@ -738,6 +738,7 @@ h1 {
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="./tribunal-generator.js" defer></script>
     <script src="./tribunal-backtracking.js" defer></script>
+    <script src="./tribunal-csv.js" defer></script>
   </head>
   <body>
     <header class="app-header">
@@ -1079,6 +1080,9 @@ h1 {
             <option value="60" selected>1 minuto</option><option value="120">2 minutos</option>
             <option value="300">5 minutos</option><option value="600">10 minutos</option>
           </select></p>
+        <p><button class="button" type="button" id="export-tribunals-csv">Descargar CSV</button> <button class="button" type="button" id="import-tribunals-csv">Importar Tribunales</button>
+          <input id="tribunals-csv-file" type="file" accept=".csv,text/csv" hidden>
+          <label><input type="checkbox" id="lock-tribunal-schedule"> Fijar alumno, fecha y hora importados al optimizar</label></p>
         <div id="optimization-progress" role="status" aria-live="off" style="display:none; padding:10px 0; font-size:0.9rem;"></div>
         <p class="source-status" id="tribunals-view-status" role="status" aria-live="polite">Autoriza Google y configura la URL de Alumnos y entregas para cargar los tribunales.</p>
         <div class="table-scroll data-view-table" id="tribunals-view-table" tabindex="0" aria-label="Tabla de tribunales"></div>
@@ -1314,6 +1318,8 @@ const DERIVED_VIEWS = {
 
 const AVAILABILITY_SHEETS = ["Disponibilidad_1", "Disponibilidad_2", "Disponibilidad_3"];
 let tribunalBaseData = null;
+let tribunalCurrentRecords = null;
+let tribunalImportedRecords = null;
 let tribunalGenerationRequest = 0;
 
 for (const name of ["students", "staff", "otherData"]) {
@@ -1374,6 +1380,9 @@ elements.configurationFile.addEventListener("change", handleConfigurationFile);
 elements.downloadConfigurationButton.addEventListener("click", downloadConfiguration);
 document.getElementById("generate-tribunals").addEventListener("click", generateRandomTribunals);
 document.getElementById("optimize-tribunals").addEventListener("click", optimizeTribunals);
+document.getElementById("export-tribunals-csv").addEventListener("click",downloadTribunalsCSV);
+document.getElementById("import-tribunals-csv").addEventListener("click",()=>document.getElementById("tribunals-csv-file").click());
+document.getElementById("tribunals-csv-file").addEventListener("change",importTribunalsCSV);
 for (const [mode, other] of [["table", "visual"], ["visual", "table"]]) {
   document.getElementById(`availability-mode-${mode}`).addEventListener("click", () => {
     document.getElementById(`availability-mode-${mode}`).setAttribute("aria-selected", "true");
@@ -1479,8 +1488,14 @@ async function loadDerivedView(viewName) {
     const projected = view.tribunalMapping
       ? mapTribunals(filtered)
       : projectColumns(filtered, view.columns);
-    renderDataTable(table, projected.headers, projected.records);
-    if (viewName === "tribunals") tribunalBaseData = projected;
+    if(viewName==="tribunals"){
+      tribunalBaseData=projected;
+      if(tribunalImportedRecords){
+        try{tribunalCurrentRecords=window.TribunalCSV.merge(projected,tribunalImportedRecords);}
+        catch(error){tribunalImportedRecords=null;tribunalCurrentRecords=projected.records.map(row=>[...row]);document.getElementById("lock-tribunal-schedule").checked=false;console.warn("CSV previo descartado al cambiar TFMs:",error.message);}
+      }else tribunalCurrentRecords=projected.records.map(row=>[...row]);
+      renderDataTable(table,projected.headers,tribunalCurrentRecords);
+    }else renderDataTable(table, projected.headers, projected.records);
     setViewStatus(status, view.filterColumn
       ? `${formatRecordCount(projected.records.length)} con «${view.filterColumn}» = «${view.filterValue}» (de ${result.records.length} TFMs).`
       : `${view.sheet}: ${formatRecordCount(projected.records.length)}.`, "success");
@@ -1533,6 +1548,7 @@ async function generateRandomTribunals() {
     const availability = await client.readSheet(otherId, selection);
     if (requestNumber !== tribunalGenerationRequest) return;
     const solution = window.TribunalGenerator.generate(tribunalBaseData, configuration, availability, tutors);
+    tribunalCurrentRecords=solution.records.map(row=>[...row]);
     renderDataTable(table, solution.headers, solution.records);
     setViewStatus(status, `Asignación provisional: ${solution.assigned} de ${solution.records.length} tribunales completos. Fuente: ${selection}. Defensas de 60 minutos.` +
       (solution.notices.length ? ` Sin asignar: ${solution.notices.length}. ${solution.notices.slice(0, 3).join(" ")}` : ""), solution.notices.length ? "error" : "success");
@@ -1542,6 +1558,28 @@ async function generateRandomTribunals() {
   } finally {
     if (requestNumber === tribunalGenerationRequest) button.disabled = false;
   }
+}
+
+
+async function importTribunalsCSV(event){
+  const input=event.currentTarget;
+  const status=document.getElementById("tribunals-view-status");
+  try{
+    if(!tribunalBaseData)throw Error("Carga primero la pestaña Tribunales con los alumnos actuales.");
+    const file=input.files?.[0];if(!file)return;
+    if(file.size>2*1024*1024)throw Error("El CSV supera 2 MB.");
+    const imported=window.TribunalCSV.parseCSV(await file.text());
+    const merged=window.TribunalCSV.merge(tribunalBaseData,imported);
+    tribunalImportedRecords=imported;
+    tribunalCurrentRecords=merged;
+    renderDataTable(document.getElementById("tribunals-view-table"),tribunalBaseData.headers,merged);
+    setViewStatus(status,`CSV importado: ${imported.length} tribunales. Marca «Fijar alumno, fecha y hora» para conservar sus horarios durante la optimización.`,"success");
+  }catch(error){setViewStatus(status,"Importación rechazada: "+error.message,"error");}
+  finally{input.value="";}
+}
+function downloadTribunalsCSV(){
+  if(!tribunalCurrentRecords){setViewStatus(document.getElementById("tribunals-view-status"),"No hay tribunales para descargar.","error");return;}
+  window.TribunalCSV.download(tribunalCurrentRecords);
 }
 
 async function optimizeTribunals() {
@@ -1575,6 +1613,16 @@ async function optimizeTribunals() {
     if(request!==tribunalGenerationRequest)return;
     setViewStatus(status,`Optimizando con backtracking (máximo ${seconds} segundos)…`);
     let lastLogged=0;
+    const locked=new Map();
+    if(document.getElementById("lock-tribunal-schedule").checked){
+      if(!tribunalImportedRecords)throw Error("Para fijar horarios, primero importa un CSV de tribunales.");
+      for(const row of tribunalImportedRecords){
+        if(!row[1] || !row[2])throw Error("El alumno "+row[0]+" no tiene fecha y hora importadas.");
+        locked.set(String(row[0]).trim().toLowerCase(),row);
+      }
+      if(locked.size!==tribunalBaseData.records.length)throw Error("El CSV debe contener los "+tribunalBaseData.records.length+" alumnos para fijar todos los horarios.");
+      console.info("[Tribunales] Franjas bloqueadas:",locked.size);
+    }
     const solution=await window.TribunalBacktracking.optimize(tribunalBaseData,configuration,availability,tutors,seconds*1000,update=>{
       if(request!==tribunalGenerationRequest)return;
       const v=update.vacancies;
@@ -1584,8 +1632,9 @@ async function optimizeTribunals() {
         console.info("[Tribunales] Progreso:",update);
         lastLogged=update.elapsedMs;
       }
-    });
+    },locked);
     if(request!==tribunalGenerationRequest)return;
+    tribunalCurrentRecords=solution.records.map(row=>[...row]);
     renderDataTable(table,solution.headers,solution.records);
     progress.textContent="Búsqueda finalizada y resultado verificado.";
     console.info("[Tribunales] Resultado:",{vacantes:solution.vacancies,nodos:solution.nodes,tiempoMs:solution.elapsedMs,optimo:solution.optimal});
